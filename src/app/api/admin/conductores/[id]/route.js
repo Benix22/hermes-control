@@ -9,7 +9,8 @@ export async function PUT(req, { params }) {
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
     if (auth.user.rol !== 'ADMINISTRADOR') return NextResponse.json({ error: 'Prohibido.' }, { status: 403 });
 
-    const { id } = params;
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
     const { username, password, activo } = await req.json();
 
     let query, queryParams;
@@ -44,7 +45,8 @@ export async function DELETE(req, { params }) {
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
     if (auth.user.rol !== 'ADMINISTRADOR') return NextResponse.json({ error: 'Prohibido.' }, { status: 403 });
 
-    const { id } = params;
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
     const result = await pool.query('UPDATE usuarios SET activo = FALSE WHERE id = $1 RETURNING id, username, rol, activo', [id]);
     if (result.rows.length === 0) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
 

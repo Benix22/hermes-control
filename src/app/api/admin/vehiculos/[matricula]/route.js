@@ -8,7 +8,8 @@ export async function PUT(req, { params }) {
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
     if (auth.user.rol !== 'ADMINISTRADOR') return NextResponse.json({ error: 'Prohibido.' }, { status: 403 });
 
-    const { matricula } = params;
+    const resolvedParams = await params;
+    const { matricula } = resolvedParams;
     const { marca_modelo, activo, en_uso, km_actuales, km_iniciales } = await req.json();
 
     const kmActParsed = parseInt(km_actuales, 10);
