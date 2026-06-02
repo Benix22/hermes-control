@@ -1923,6 +1923,7 @@ function ReportDetailModal({ report, onClose }) {
 function AdminRepostajes({ token }) {
   const [repostajesData, setRepostajesData] = useState({ resumen: { totalEuros: 0, totalRepostajes: 0 }, detalles: [] });
   const [conductores, setConductores] = useState([]);
+  const [vehiculos, setVehiculos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -1934,6 +1935,7 @@ function AdminRepostajes({ token }) {
 
   useEffect(() => {
     fetchConductores();
+    fetchVehiculos();
     fetchRepostajes();
   }, []);
 
@@ -1941,6 +1943,13 @@ function AdminRepostajes({ token }) {
     try {
       const res = await fetch(`${API_URL}/admin/conductores`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) setConductores(await res.json());
+    } catch (err) {}
+  };
+
+  const fetchVehiculos = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/vehiculos`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setVehiculos(await res.json());
     } catch (err) {}
   };
 
@@ -2007,13 +2016,16 @@ function AdminRepostajes({ token }) {
 
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Matrícula</label>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Ej: 1234ABC"
+            <select 
+              className="form-input form-select"
               value={matricula}
               onChange={(e) => setMatricula(e.target.value)}
-            />
+            >
+              <option value="">Todas</option>
+              {vehiculos.map(v => (
+                <option key={v.matricula} value={v.matricula}>{v.matricula}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
