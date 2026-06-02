@@ -1251,7 +1251,7 @@ function AdminVehicles({ token }) {
                 />
               </div>
 
-              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label className="form-label">Kilómetros Iniciales</label>
                   <input 

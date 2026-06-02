@@ -22,12 +22,15 @@ export async function POST(req) {
     if (auth.user.rol !== 'ADMINISTRADOR') return NextResponse.json({ error: 'Prohibido.' }, { status: 403 });
 
     const { matricula, marca_modelo, km_actuales, km_iniciales } = await req.json();
-    const kmAct = parseInt(km_actuales, 10) || 0;
-    const kmIni = km_iniciales !== undefined ? parseInt(km_iniciales, 10) : kmAct;
+    const kmActParsed = parseInt(km_actuales, 10);
+    const validKmAct = isNaN(kmActParsed) ? 0 : kmActParsed;
+    
+    const kmIniParsed = parseInt(km_iniciales, 10);
+    const validKmIni = isNaN(kmIniParsed) ? validKmAct : kmIniParsed;
 
     const result = await pool.query(
       'INSERT INTO vehiculos (matricula, marca_modelo, km_iniciales, km_actuales, en_uso, activo) VALUES ($1, $2, $3, $4, FALSE, TRUE) RETURNING *',
-      [matricula.toUpperCase().trim(), marca_modelo.trim(), kmIni, kmAct]
+      [matricula.toUpperCase().trim(), marca_modelo.trim(), validKmIni, validKmAct]
     );
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (err) {

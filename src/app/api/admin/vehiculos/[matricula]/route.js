@@ -11,9 +11,15 @@ export async function PUT(req, { params }) {
     const { matricula } = params;
     const { marca_modelo, activo, en_uso, km_actuales, km_iniciales } = await req.json();
 
+    const kmActParsed = parseInt(km_actuales, 10);
+    const validKmAct = isNaN(kmActParsed) ? 0 : kmActParsed;
+
+    const kmIniParsed = parseInt(km_iniciales, 10);
+    const validKmIni = isNaN(kmIniParsed) ? null : kmIniParsed;
+
     const result = await pool.query(
       "UPDATE vehiculos SET marca_modelo = $1, activo = $2, en_uso = $3, km_actuales = $4, km_iniciales = COALESCE($5, km_iniciales) WHERE matricula = $6 RETURNING *",
-      [marca_modelo.trim(), activo, en_uso, parseInt(km_actuales, 10) || 0, km_iniciales !== undefined ? parseInt(km_iniciales, 10) : null, matricula.toUpperCase()]
+      [marca_modelo.trim(), activo, en_uso, validKmAct, validKmIni, matricula.toUpperCase()]
     );
     if (result.rows.length === 0) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
     return NextResponse.json(result.rows[0]);
