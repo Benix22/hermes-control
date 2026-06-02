@@ -5,6 +5,14 @@ export async function GET(req) {
   try {
     await pool.query('ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS km_actuales INTEGER DEFAULT 0 NOT NULL');
     await pool.query('ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS km_iniciales INTEGER DEFAULT 0 NOT NULL');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS repostajes (
+          id SERIAL PRIMARY KEY,
+          id_jornada INTEGER NOT NULL REFERENCES jornadas(id) ON DELETE CASCADE,
+          cantidad_euros DECIMAL(10,2) NOT NULL,
+          fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+      )
+    `);
     return NextResponse.json({ success: true, message: 'Migración completada: km_actuales y km_iniciales añadidos a vehiculos.' });
   } catch (err) {
     console.error(err);

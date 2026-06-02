@@ -25,7 +25,16 @@ export async function GET(req) {
             ) ORDER BY p.hora_inicio ASC
         ), '[]'::json)
         FROM pausas_jornada p WHERE p.id_jornada = j.id
-      ) as pausas
+      ) as pausas,
+      (
+        SELECT COALESCE(json_agg(
+            json_build_object(
+                'fecha_hora', r.fecha_hora,
+                'cantidad_euros', r.cantidad_euros
+            ) ORDER BY r.fecha_hora ASC
+        ), '[]'::json)
+        FROM repostajes r WHERE r.id_jornada = j.id
+      ) as repostajes
       FROM jornadas j JOIN usuarios u ON j.id_conductor = u.id WHERE j.estado = 'FINALIZADA'`;
     const params = [];
 

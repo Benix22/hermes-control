@@ -48,6 +48,14 @@ CREATE TABLE pausas_jornada (
     hora_fin TIMESTAMP WITH TIME ZONE -- NULL si la pausa está activa
 );
 
+-- 5. Tabla: repostajes (Registro de repostajes por jornada)
+CREATE TABLE repostajes (
+    id SERIAL PRIMARY KEY,
+    id_jornada INTEGER NOT NULL REFERENCES jornadas(id) ON DELETE CASCADE,
+    cantidad_euros DECIMAL(10,2) NOT NULL,
+    fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
 -- Índices recomendados para optimización de búsquedas y reportes
 CREATE INDEX idx_jornadas_conductor ON jornadas(id_conductor);
 CREATE INDEX idx_jornadas_matricula ON jornadas(matricula);

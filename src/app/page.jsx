@@ -20,7 +20,10 @@ import {
   TrendingUp, 
   X,
   RefreshCw,
-  Monitor
+  Monitor,
+  AlertCircle,
+  History,
+  Fuel
 } from 'lucide-react';
 
 const API_URL = '/api';
@@ -271,6 +274,11 @@ function ConductorDashboard({ token }) {
   const [kmInicio, setKmInicio] = useState('');
   const [fotoBase64, setFotoBase64] = useState('');
   
+  // Modal repostaje
+  const [showRefuelModal, setShowRefuelModal] = useState(false);
+  const [refuelAmount, setRefuelAmount] = useState('');
+  const [refuelLoading, setRefuelLoading] = useState(false);
+  
   // Datos de Check-out
   const [kmFin, setKmFin] = useState('');
   
@@ -452,6 +460,35 @@ function ConductorDashboard({ token }) {
       }
     } catch (err) {
       setErrorMsg('Error al reanudar la jornada.');
+    }
+  };
+
+  const handleRefuel = async (e) => {
+    e.preventDefault();
+    if (!refuelAmount || parseFloat(refuelAmount) <= 0) return;
+    setRefuelLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`${API_URL}/jornadas/repostajes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ cantidad_euros: parseFloat(refuelAmount) })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg(`Repostaje de ${parseFloat(refuelAmount).toFixed(2)}€ registrado correctamente.`);
+        setShowRefuelModal(false);
+        setRefuelAmount('');
+      } else {
+        setErrorMsg(data.error);
+        setShowRefuelModal(false);
+      }
+    } catch (err) {
+      setErrorMsg('Error de red al registrar repostaje.');
+      setShowRefuelModal(false);
+    } finally {
+      setRefuelLoading(false);
     }
   };
 
@@ -660,12 +697,18 @@ function ConductorDashboard({ token }) {
           />
 
           {/* Controles de Pausa/Reanudación */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
             {jornadaActiva.estado === 'ACTIVA' ? (
-              <button onClick={handlePause} className="btn btn-secondary" style={{ flex: 1, height: '2.6rem' }}>
-                <Pause size={18} />
-                <span>Pausar Descanso</span>
-              </button>
+              <>
+                <button onClick={handlePause} className="btn btn-secondary" style={{ flex: 1, height: '2.6rem', minWidth: '140px' }}>
+                  <Pause size={18} />
+                  <span>Pausar Descanso</span>
+                </button>
+                <button onClick={() => setShowRefuelModal(true)} className="btn btn-primary" style={{ flex: 1, height: '2.6rem', minWidth: '140px' }}>
+                  <Fuel size={18} />
+                  <span>Repostar</span>
+                </button>
+              </>
             ) : (
               <button onClick={handleResume} className="btn btn-primary" style={{ flex: 1, height: '2.6rem' }}>
                 <Play size={18} />
@@ -707,6 +750,52 @@ function ConductorDashboard({ token }) {
               <span>Finalizar Jornada (Check-Out)</span>
             </button>
           </form>
+        </div>
+      )}
+
+      {/* MODAL REPOSTAJE */}
+      {showRefuelModal && (
+        <div className="modal-overlay animate-fade-in" onClick={() => !refuelLoading && setShowRefuelModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Fuel size={20} /> Registrar Repostaje
+            </h3>
+            <form onSubmit={handleRefuel}>
+              <div className="form-group">
+                <label className="form-label">Coste del repostaje (€)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  min="0.1"
+                  className="form-input" 
+                  placeholder="Ej: 50.00"
+                  value={refuelAmount}
+                  onChange={(e) => setRefuelAmount(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowRefuelModal(false)}
+                  style={{ flex: 1 }}
+                  disabled={refuelLoading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  style={{ flex: 1 }}
+                  disabled={refuelLoading}
+                >
+                  {refuelLoading ? <RefreshCw size={18} className="animate-spin" /> : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
@@ -802,6 +891,14 @@ function AdminDashboard({ token }) {
             <Car size={18} />
             <span>Vehículos</span>
           </button>
+          
+          <button 
+            className={`btn ${activeTab === 'repostajes' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('repostajes')}
+          >
+            <Fuel size={18} />
+            <span>Repostajes</span>
+          </button>
         </div>
       </div>
 
@@ -810,6 +907,7 @@ function AdminDashboard({ token }) {
         {activeTab === 'conductores' && <AdminDrivers token={token} />}
         {activeTab === 'vehiculos' && <AdminVehicles token={token} />}
         {activeTab === 'reportes' && <AdminReports token={token} />}
+        {activeTab === 'repostajes' && <AdminRepostajes token={token} />}
       </div>
     </div>
   );
@@ -1782,10 +1880,215 @@ function ReportDetailModal({ report, onClose }) {
           </div>
         )}
 
+        <h4 style={{ fontSize: '1rem', marginTop: '2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Fuel size={16} style={{ color: 'var(--color-primary)' }} />
+          Registro de Repostajes
+        </h4>
+        
+        {(!report.repostajes || report.repostajes.length === 0) ? (
+          <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            No se registraron repostajes en esta jornada.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {report.repostajes.map((r, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }}></div>
+                  <span style={{ fontSize: '0.9rem' }}>Repostaje {idx + 1}</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {formatTime(r.fecha_hora)}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-success)' }}>
+                  {parseFloat(r.cantidad_euros).toFixed(2)} €
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button className="btn btn-secondary" style={{ width: '100%', marginTop: '2rem' }} onClick={onClose}>
           Cerrar Detalle
         </button>
 
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================
+   ADMIN - REPOSTAJES
+   ========================================== */
+function AdminRepostajes({ token }) {
+  const [repostajesData, setRepostajesData] = useState({ resumen: { totalEuros: 0, totalRepostajes: 0 }, detalles: [] });
+  const [conductores, setConductores] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Filtros
+  const [selectedConductor, setSelectedConductor] = useState('todos');
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [matricula, setMatricula] = useState('');
+
+  useEffect(() => {
+    fetchConductores();
+    fetchRepostajes();
+  }, []);
+
+  const fetchConductores = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/conductores`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setConductores(await res.json());
+    } catch (err) {}
+  };
+
+  const fetchRepostajes = async (e) => {
+    if (e) e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      let query = `?conductorId=${selectedConductor}`;
+      if (fechaInicio) query += `&fechaInicio=${fechaInicio}`;
+      if (fechaFin) query += `&fechaFin=${fechaFin}`;
+      if (matricula) query += `&matricula=${matricula}`;
+
+      const res = await fetch(`${API_URL}/admin/repostajes${query}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setRepostajesData(await res.json());
+      } else {
+        setErrorMsg('Error al cargar datos.');
+      }
+    } catch (err) {
+      setErrorMsg('Error de conexión.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      
+      {/* TARJETA DE RESUMEN */}
+      <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem', maxWidth: '400px' }}>
+        <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(16,185,129,0.1)', color: 'var(--color-success)' }}>
+          <Fuel size={24} />
+        </div>
+        <div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Gastado en Repostajes</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>
+            {repostajesData.resumen.totalEuros.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {repostajesData.resumen.totalRepostajes} repostajes encontrados
+          </div>
+        </div>
+      </div>
+
+      {/* FILTROS */}
+      <div className="glass-card">
+        <form onSubmit={fetchRepostajes} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Conductor</label>
+            <select 
+              className="form-input form-select"
+              value={selectedConductor}
+              onChange={(e) => setSelectedConductor(e.target.value)}
+            >
+              <option value="todos">Todos</option>
+              {conductores.map(c => (
+                <option key={c.id} value={c.id}>{c.username}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Matrícula</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Ej: 1234ABC"
+              value={matricula}
+              onChange={(e) => setMatricula(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Fecha Inicio</label>
+            <input 
+              type="date" 
+              className="form-input" 
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Fecha Fin</label>
+            <input 
+              type="date" 
+              className="form-input" 
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1, height: '2.5rem' }} disabled={loading}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              <span>Filtrar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* RESULTADOS */}
+      <div className="glass-card">
+        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Repostajes</h3>
+        {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{errorMsg}</div>}
+        
+        <div className="table-container">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Fecha y Hora</th>
+                <th>Conductor</th>
+                <th>Vehículo</th>
+                <th>Coste</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repostajesData.detalles.length === 0 ? (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    No se han encontrado repostajes con estos filtros.
+                  </td>
+                </tr>
+              ) : (
+                repostajesData.detalles.map(r => (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>{new Date(r.fecha_hora).toLocaleDateString()}</strong> 
+                      <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
+                        {new Date(r.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td>{r.conductor}</td>
+                    <td>{r.matricula}</td>
+                    <td>
+                      <span className="badge badge-success" style={{ fontWeight: 700 }}>
+                        {parseFloat(r.cantidad_euros).toFixed(2)} €
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
