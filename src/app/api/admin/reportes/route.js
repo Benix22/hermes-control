@@ -12,6 +12,7 @@ export async function GET(req) {
     const conductorId = searchParams.get('conductorId');
     const fechaInicio = searchParams.get('fechaInicio');
     const fechaFin = searchParams.get('fechaFin');
+    const matricula = searchParams.get('matricula');
 
     let sql = `SELECT 
       j.id, j.id_conductor, u.username AS conductor, j.matricula, j.km_inicio, j.km_fin, 
@@ -31,6 +32,10 @@ export async function GET(req) {
     if (conductorId && conductorId !== 'todos') {
       params.push(parseInt(conductorId, 10));
       sql += ` AND j.id_conductor = $${params.length}`;
+    }
+    if (matricula && matricula !== 'todas') {
+      params.push(matricula.toUpperCase());
+      sql += ` AND j.matricula = $${params.length}`;
     }
     if (fechaInicio) {
       params.push(`${fechaInicio} 00:00:00+00`);

@@ -21,6 +21,8 @@ CREATE TABLE usuarios (
 CREATE TABLE vehiculos (
     matricula VARCHAR(15) PRIMARY KEY,
     marca_modelo VARCHAR(100) NOT NULL,
+    km_iniciales INTEGER DEFAULT 0 NOT NULL,
+    km_actuales INTEGER DEFAULT 0 NOT NULL,
     en_uso BOOLEAN DEFAULT FALSE NOT NULL,
     activo BOOLEAN DEFAULT TRUE NOT NULL
 );

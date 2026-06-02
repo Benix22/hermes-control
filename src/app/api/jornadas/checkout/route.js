@@ -28,7 +28,7 @@ export async function POST(req) {
         "UPDATE jornadas SET km_fin = $1, hora_fin = NOW(), estado = 'FINALIZADA' WHERE id = $2 RETURNING *",
         [kmFinNum, shift.id]
       );
-      await client.query('UPDATE vehiculos SET en_uso = FALSE WHERE matricula = $1', [shift.matricula]);
+      await client.query('UPDATE vehiculos SET en_uso = FALSE, km_actuales = $2 WHERE matricula = $1', [shift.matricula, kmFinNum]);
       await client.query('COMMIT');
       return NextResponse.json({ success: true, jornada: updateShift.rows[0] });
     } catch (e) {

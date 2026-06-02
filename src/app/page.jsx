@@ -1043,7 +1043,13 @@ function AdminVehicles({ token }) {
   // Modal de añadir/editar
   const [showModal, setShowModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
-  const [formData, setFormData] = useState({ matricula: '', marca_modelo: '', activo: true, en_uso: false });
+  const [formData, setFormData] = useState({ matricula: '', marca_modelo: '', km_iniciales: 0, km_actuales: 0, activo: true, en_uso: false });
+
+  // Historial de Vehiculo
+  const [historyVehicle, setHistoryVehicle] = useState(null);
+  const [historyDate, setHistoryDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [historyData, setHistoryData] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     loadVehicles();
@@ -1068,14 +1074,14 @@ function AdminVehicles({ token }) {
 
   const handleOpenAdd = () => {
     setEditingVehicle(null);
-    setFormData({ matricula: '', marca_modelo: '', activo: true, en_uso: false });
+    setFormData({ matricula: '', marca_modelo: '', km_iniciales: 0, km_actuales: 0, activo: true, en_uso: false });
     setErrorMsg('');
     setShowModal(true);
   };
 
   const handleOpenEdit = (v) => {
     setEditingVehicle(v);
-    setFormData({ matricula: v.matricula, marca_modelo: v.marca_modelo, activo: v.activo, en_uso: v.en_uso });
+    setFormData({ matricula: v.matricula, marca_modelo: v.marca_modelo, km_iniciales: v.km_iniciales || 0, km_actuales: v.km_actuales || 0, activo: v.activo, en_uso: v.en_uso });
     setErrorMsg('');
     setShowModal(true);
   };
@@ -1117,6 +1123,31 @@ function AdminVehicles({ token }) {
     }
   };
 
+  const handleSearchHistory = async (e) => {
+    if (e) e.preventDefault();
+    setHistoryLoading(true);
+    try {
+      const query = `matricula=${historyVehicle.matricula}&fechaInicio=${historyDate}&fechaFin=${historyDate}`;
+      const res = await fetch(`${API_URL}/admin/reportes?${query}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryData(data.detalles);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (historyVehicle) {
+      handleSearchHistory();
+    }
+  }, [historyVehicle, historyDate]);
+
   return (
     <div className="glass-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -1135,6 +1166,9 @@ function AdminVehicles({ token }) {
             <tr>
               <th>Matrícula</th>
               <th>Marca y Modelo</th>
+              <th>Km Iniciales</th>
+              <th>Km Actuales</th>
+              <th>Total Recorrido</th>
               <th>Estado Flota</th>
               <th>Uso en Tiempo Real</th>
               <th style={{ textAlign: 'right' }}>Acciones</th>
@@ -1142,9 +1176,18 @@ function AdminVehicles({ token }) {
           </thead>
           <tbody>
             {vehiculos.map(v => (
-              <tr key={v.matricula}>
+              <tr 
+                key={v.matricula}
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                onClick={() => setHistoryVehicle(v)}
+              >
                 <td><strong>{v.matricula}</strong></td>
                 <td>{v.marca_modelo}</td>
+                <td>{v.km_iniciales || 0} km</td>
+                <td>{v.km_actuales || 0} km</td>
+                <td><span className="badge badge-primary">{(v.km_actuales || 0) - (v.km_iniciales || 0)} km</span></td>
                 <td>
                   <span className={`badge ${v.activo ? 'badge-success' : 'badge-danger'}`}>
                     {v.activo ? 'Activo' : 'Inactivo'}
@@ -1156,7 +1199,7 @@ function AdminVehicles({ token }) {
                   </span>
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem' }} onClick={() => handleOpenEdit(v)}>
+                  <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem' }} onClick={(e) => { e.stopPropagation(); handleOpenEdit(v); }}>
                     <Edit size={14} />
                     <span>Editar</span>
                   </button>
@@ -1208,6 +1251,31 @@ function AdminVehicles({ token }) {
                 />
               </div>
 
+              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="form-label">Kilómetros Iniciales</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={formData.km_iniciales}
+                    onChange={(e) => setFormData({ ...formData, km_iniciales: e.target.value })}
+                    placeholder="Ej. 100000"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Kilómetros Actuales</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={formData.km_actuales}
+                    onChange={(e) => setFormData({ ...formData, km_actuales: e.target.value })}
+                    placeholder="Ej. 150000"
+                    min="0"
+                  />
+                </div>
+              </div>
+
               {editingVehicle && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                   <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
@@ -1243,6 +1311,74 @@ function AdminVehicles({ token }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HISTORIAL VEHÍCULO */}
+      {historyVehicle && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1rem'
+        }} onClick={() => setHistoryVehicle(null)}>
+          <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '600px', background: 'var(--bg-main)', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Car size={20} style={{ color: 'var(--color-primary)' }} />
+                Historial: {historyVehicle.matricula}
+              </h3>
+              <button onClick={() => setHistoryVehicle(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Buscar por fecha:</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={historyDate}
+                onChange={(e) => setHistoryDate(e.target.value)}
+              />
+            </div>
+
+            {historyLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <RefreshCw className="animate-spin" size={24} style={{ color: 'var(--color-primary-hover)' }} />
+              </div>
+            ) : (
+              <div>
+                {!historyData || historyData.length === 0 ? (
+                  <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No hay registros de uso para este vehículo en la fecha seleccionada.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {historyData.map(r => {
+                      const timeStart = new Date(r.hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const timeEnd = r.hora_fin ? new Date(r.hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                      return (
+                        <div key={r.id} style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <strong style={{ fontSize: '1.1rem' }}>{r.conductor}</strong>
+                            <span className="badge badge-success" style={{ fontWeight: 700 }}>+{r.km_recorridos} km</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            <div>
+                              <div><strong>Horario:</strong> {timeStart} - {timeEnd}</div>
+                            </div>
+                            <div>
+                              <div><strong>Km:</strong> {r.km_inicio} a {r.km_fin || 'En curso'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
