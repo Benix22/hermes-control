@@ -13,7 +13,19 @@ export async function GET(req) {
     const fechaInicio = searchParams.get('fechaInicio');
     const fechaFin = searchParams.get('fechaFin');
 
-    let sql = `SELECT j.id, j.id_conductor, u.username AS conductor, j.matricula, j.km_inicio, j.km_fin, (j.km_fin - j.km_inicio) AS km_recorridos, j.hora_inicio, j.hora_fin, j.estado, j.url_foto_km FROM jornadas j JOIN usuarios u ON j.id_conductor = u.id WHERE j.estado = 'FINALIZADA'`;
+    let sql = `SELECT 
+      j.id, j.id_conductor, u.username AS conductor, j.matricula, j.km_inicio, j.km_fin, 
+      (j.km_fin - j.km_inicio) AS km_recorridos, j.hora_inicio, j.hora_fin, j.estado, j.url_foto_km,
+      (
+        SELECT COALESCE(json_agg(
+            json_build_object(
+                'hora_inicio', p.hora_inicio,
+                'hora_fin', p.hora_fin
+            ) ORDER BY p.hora_inicio ASC
+        ), '[]'::json)
+        FROM pausas_jornada p WHERE p.id_jornada = j.id
+      ) as pausas
+      FROM jornadas j JOIN usuarios u ON j.id_conductor = u.id WHERE j.estado = 'FINALIZADA'`;
     const params = [];
 
     if (conductorId && conductorId !== 'todos') {

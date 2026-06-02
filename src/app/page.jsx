@@ -1266,6 +1266,9 @@ function AdminReports({ token }) {
   
   // Visualizar foto en modal
   const [activePhoto, setActivePhoto] = useState('');
+  
+  // Modal de detalles de la jornada
+  const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
     loadActiveDrivers();
@@ -1458,7 +1461,13 @@ function AdminReports({ token }) {
                     : '--:--';
                   
                   return (
-                    <tr key={r.id}>
+                    <tr 
+                      key={r.id} 
+                      onClick={() => setSelectedReport(r)} 
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
                       <td><strong>{dateStr}</strong></td>
                       <td>{r.conductor}</td>
                       <td>{r.matricula}</td>
@@ -1477,7 +1486,10 @@ function AdminReports({ token }) {
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
-                            onClick={() => setActivePhoto(r.url_foto_km)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActivePhoto(r.url_foto_km);
+                            }}
                           >
                             <Eye size={12} />
                             <span>Ver Foto</span>
@@ -1521,6 +1533,124 @@ function AdminReports({ token }) {
         </div>
       )}
 
+      {/* MODAL DETALLE DE JORNADA */}
+      {selectedReport && (
+        <ReportDetailModal 
+          report={selectedReport} 
+          onClose={() => setSelectedReport(null)} 
+        />
+      )}
+
+    </div>
+  );
+}
+
+/* ==========================================
+   COMPONENTE: MODAL DETALLE DE JORNADA
+   ========================================== */
+function ReportDetailModal({ report, onClose }) {
+  const formatTime = (isoString) => {
+    if (!isoString) return '--:--';
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const calculateDuration = (start, end) => {
+    if (!end) return 'En curso';
+    const s = new Date(start).getTime();
+    const e = new Date(end).getTime();
+    const diffMs = e - s;
+    const diffMins = Math.floor(diffMs / 60000);
+    const hrs = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    return `${mins}m`;
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+      backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000, padding: '1rem'
+    }} onClick={onClose}>
+      <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '500px', background: 'var(--bg-main)', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileText size={20} style={{ color: 'var(--color-primary)' }} />
+            Detalle de Jornada
+          </h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fecha</div>
+            <div style={{ fontWeight: 600 }}>{new Date(report.hora_inicio).toLocaleDateString()}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Conductor</div>
+            <div style={{ fontWeight: 600 }}>{report.conductor}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Vehículo</div>
+            <div style={{ fontWeight: 600 }}>{report.matricula}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Horario</div>
+            <div style={{ fontWeight: 600 }}>{formatTime(report.hora_inicio)} - {formatTime(report.hora_fin)}</div>
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Km Inicio</div>
+            <div style={{ fontWeight: 600 }}>{report.km_inicio}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Km Fin</div>
+            <div style={{ fontWeight: 600 }}>{report.km_fin || '-'}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total</div>
+            <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>+{report.km_recorridos} km</div>
+          </div>
+        </div>
+
+        <h4 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Clock size={16} />
+          Registro de Pausas
+        </h4>
+        
+        {(!report.pausas || report.pausas.length === 0) ? (
+          <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            No se registraron pausas en esta jornada.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {report.pausas.map((p, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-warning)' }}></div>
+                  <span style={{ fontSize: '0.9rem' }}>Pausa {idx + 1}</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {formatTime(p.hora_inicio)} - {formatTime(p.hora_fin)}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                  {calculateDuration(p.hora_inicio, p.hora_fin)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button className="btn btn-secondary" style={{ width: '100%', marginTop: '2rem' }} onClick={onClose}>
+          Cerrar Detalle
+        </button>
+
+      </div>
     </div>
   );
 }
