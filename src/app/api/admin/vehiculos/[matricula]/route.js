@@ -18,12 +18,13 @@ export async function PUT(req, { params }) {
     const validKmIni = isNaN(kmIniParsed) ? null : kmIniParsed;
 
     const result = await pool.query(
-      "UPDATE vehiculos SET marca_modelo = $1, activo = $2, en_uso = $3, km_actuales = $4, km_iniciales = COALESCE($5, km_iniciales) WHERE matricula = $6 RETURNING *",
+      "UPDATE vehiculos SET marca_modelo = $1, activo = $2, en_uso = $3, km_actuales = $4, km_iniciales = COALESCE($5::integer, km_iniciales) WHERE matricula = $6 RETURNING *",
       [marca_modelo.trim(), activo, en_uso, validKmAct, validKmIni, matricula.toUpperCase()]
     );
     if (result.rows.length === 0) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
     return NextResponse.json(result.rows[0]);
   } catch (err) {
-    return NextResponse.json({ error: 'Error.' }, { status: 500 });
+    console.error('Error updating vehicle:', err);
+    return NextResponse.json({ error: 'Error del servidor: ' + err.message }, { status: 500 });
   }
 }

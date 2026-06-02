@@ -34,6 +34,7 @@ export async function POST(req) {
     );
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: 'Error.' }, { status: 500 });
+    console.error('Error creating vehicle:', err);
+    return NextResponse.json({ error: 'Error del servidor: ' + err.message }, { status: 500 });
   }
 }
