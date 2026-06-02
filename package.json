@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Root configuration for Javify Control unified Vercel deployment",
   "scripts": {
-    "build": "npm run build --prefix frontend"
+    "build": "npm install --prefix frontend && npm run build --prefix frontend"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
