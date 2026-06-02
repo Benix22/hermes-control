@@ -22,7 +22,9 @@ import {
   Monitor
 } from 'lucide-react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = window.location.origin.includes('localhost')
+  ? 'http://localhost:5000/api'
+  : '/api';
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');

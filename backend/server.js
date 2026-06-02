@@ -681,7 +681,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Ocurrió un error inesperado en el servidor.' });
 });
 
-// Levantar el servidor
-app.listen(PORT, () => {
-  console.log(`Servidor Express corriendo en puerto: ${PORT}`);
-});
+// Levantar el servidor (solo localmente, no en funciones Serverless de Vercel)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Servidor Express corriendo en puerto: ${PORT}`);
+  });
+}
+
+module.exports = app;
