@@ -2044,9 +2044,10 @@ function AdminRepostajes({ token }) {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Filtros
+  const todayStr = new Date().toISOString().split('T')[0];
   const [selectedConductor, setSelectedConductor] = useState('todos');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
+  const [fechaInicio, setFechaInicio] = useState(todayStr);
+  const [fechaFin, setFechaFin] = useState(todayStr);
   const [matricula, setMatricula] = useState('');
 
   useEffect(() => {
