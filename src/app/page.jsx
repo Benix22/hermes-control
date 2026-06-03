@@ -24,7 +24,8 @@ import {
   AlertCircle,
   History,
   Fuel,
-  Droplet
+  Droplet,
+  Key
 } from 'lucide-react';
 
 const API_URL = '/api';
@@ -39,6 +40,13 @@ export default function App() {
   const [isAdminSimulatingDriver, setIsAdminSimulatingDriver] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Modal cambio contraseña
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   // Sincronizar token en axios/fetch y cargar usuario
   useEffect(() => {
@@ -79,6 +87,32 @@ export default function App() {
     setUser(null);
     setView('login');
     setIsAdminSimulatingDriver(false);
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordLoading(true);
+    setErrorMsg('');
+    setPasswordSuccess('');
+    try {
+      const res = await fetch(`${API_URL}/auth/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordSuccess('Contraseña actualizada correctamente. Cierra esta ventana.');
+        setCurrentPassword('');
+        setNewPassword('');
+      } else {
+        setErrorMsg(data.error);
+      }
+    } catch (err) {
+      setErrorMsg('Error de red al actualizar contraseña.');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   if (view === 'login') {
@@ -123,6 +157,10 @@ export default function App() {
               </button>
             )}
 
+            <button onClick={() => setShowPasswordModal(true)} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }} title="Cambiar Contraseña">
+              <Key size={16} />
+            </button>
+
             <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }} title="Cerrar sesión">
               <LogOut size={16} />
             </button>
@@ -137,6 +175,46 @@ export default function App() {
           <ConductorDashboard token={token} />
         )}
       </main>
+
+      {/* MODAL CAMBIAR CONTRASEÑA */}
+      {showPasswordModal && (
+        <div className="modal-overlay animate-fade-in" onClick={() => !passwordLoading && setShowPasswordModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '380px' }}>
+            <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Key size={20} /> Cambiar Contraseña
+            </h3>
+            {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem', fontSize: '0.9rem' }}>{errorMsg}</div>}
+            {passwordSuccess && <div style={{ color: 'var(--color-success)', marginBottom: '1rem', fontSize: '0.9rem' }}>{passwordSuccess}</div>}
+            
+            <form onSubmit={handleChangePassword}>
+              <div className="form-group">
+                <label className="form-label">Contraseña Actual *</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nueva Contraseña *</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPasswordModal(false)} style={{ flex: 1 }} disabled={passwordLoading}>Cerrar</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={passwordLoading || !currentPassword || !newPassword}>Actualizar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
