@@ -116,13 +116,13 @@ export default function App() {
                 ) : (
                   <>
                     <User size={16} />
-                    <span>Probar Vista Móvil</span>
+                    <span>Probar Vista MÃ³vil</span>
                   </>
                 )}
               </button>
             )}
 
-            <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }} title="Cerrar sesión">
+            <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }} title="Cerrar sesiÃ³n">
               <LogOut size={16} />
             </button>
           </div>
@@ -151,7 +151,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username || !password) {
-      setErrorMsg('Por favor introduce tu usuario y contraseña.');
+      setErrorMsg('Por favor introduce tu usuario y contraseÃ±a.');
       return;
     }
 
@@ -169,7 +169,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
       if (res.ok) {
         setToken(data.token);
       } else {
-        setErrorMsg(data.error || 'Error al iniciar sesión.');
+        setErrorMsg(data.error || 'Error al iniciar sesiÃ³n.');
       }
     } catch (err) {
       console.error(err);
@@ -232,14 +232,14 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
           </div>
 
           <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label className="form-label">Contraseña</label>
+            <label className="form-label">ContraseÃ±a</label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input 
                 type="password" 
                 className="form-input" 
                 style={{ paddingLeft: '2.5rem', width: '100%' }}
-                placeholder="••••••••" 
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
@@ -253,7 +253,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
             style={{ width: '100%', height: '2.8rem' }}
             disabled={loading}
           >
-            {loading ? 'Iniciando Sesión...' : 'Entrar al Sistema'}
+            {loading ? 'Iniciando SesiÃ³n...' : 'Entrar al Sistema'}
           </button>
         </form>
       </div>
@@ -262,7 +262,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
 }
 
 /* ==========================================================================
-   VISTA CONDUCTOR (MÓVIL)
+   VISTA CONDUCTOR (MÃ“VIL)
    ========================================================================== */
 function ConductorDashboard({ token }) {
   const [jornadaActiva, setJornadaActiva] = useState(null);
@@ -279,6 +279,11 @@ function ConductorDashboard({ token }) {
   const [refuelAmount, setRefuelAmount] = useState('');
   const [refuelKm, setRefuelKm] = useState('');
   const [refuelLoading, setRefuelLoading] = useState(false);
+  
+  // Modal limpieza
+  const [showLimpiezaModal, setShowLimpiezaModal] = useState(false);
+  const [limpiezaAmount, setLimpiezaAmount] = useState('');
+  const [limpiezaLoading, setLimpiezaLoading] = useState(false);
   
   // Datos de Check-out
   const [kmFin, setKmFin] = useState('');
@@ -343,7 +348,7 @@ function ConductorDashboard({ token }) {
       return;
     }
 
-    // Comprimir ligeramente limitando a un tamaño adecuado
+    // Comprimir ligeramente limitando a un tamaÃ±o adecuado
     const reader = new FileReader();
     reader.onload = (event) => {
       // Usar un Canvas para redimensionar la imagen antes de subirla
@@ -429,15 +434,15 @@ function ConductorDashboard({ token }) {
   const handleCheckIn = async (e) => {
     e.preventDefault();
     if (!selectedMatricula) {
-      setErrorMsg('Debes seleccionar obligatoriamente una matrícula.');
+      setErrorMsg('Debes seleccionar obligatoriamente una matrÃ­cula.');
       return;
     }
     if (kmInicio === '' || parseInt(kmInicio, 10) < 0) {
-      setErrorMsg('Debes introducir un kilometraje inicial válido.');
+      setErrorMsg('Debes introducir un kilometraje inicial vÃ¡lido.');
       return;
     }
     if (!fotoBase64) {
-      setErrorMsg('La fotografía del cuentakilómetros es obligatoria para iniciar la jornada.');
+      setErrorMsg('La fotografÃ­a del cuentakilÃ³metros es obligatoria para iniciar la jornada.');
       return;
     }
 
@@ -518,7 +523,7 @@ function ConductorDashboard({ token }) {
     e.preventDefault();
     if (!refuelAmount || parseFloat(refuelAmount) <= 0) return;
     if (!refuelKm || parseInt(refuelKm, 10) < 0) {
-      setErrorMsg('Debes introducir los kilómetros actuales del vehículo.');
+      setErrorMsg('Debes introducir los kilÃ³metros actuales del vehÃ­culo.');
       setShowRefuelModal(false);
       return;
     }
@@ -536,7 +541,7 @@ function ConductorDashboard({ token }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(`Repostaje de ${parseFloat(refuelAmount).toFixed(2)}€ registrado correctamente.`);
+        setSuccessMsg(`Repostaje de ${parseFloat(refuelAmount).toFixed(2)}â‚¬ registrado correctamente.`);
         setShowRefuelModal(false);
         setRefuelAmount('');
         setRefuelKm('');
@@ -545,25 +550,54 @@ function ConductorDashboard({ token }) {
         setShowRefuelModal(false);
       }
     } catch (err) {
-      setErrorMsg('Error de red al registrar repostaje.');
+      setErrorMsg('Error de red.');
       setShowRefuelModal(false);
-    } finally {
-      setRefuelLoading(false);
     }
+    setRefuelLoading(false);
+  };
+
+  const handleLimpieza = async (e) => {
+    e.preventDefault();
+    if (!limpiezaAmount || parseFloat(limpiezaAmount) <= 0) return;
+    setLimpiezaLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`${API_URL}/jornadas/limpiezas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ 
+          cantidad_euros: parseFloat(limpiezaAmount)
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg(`Limpieza de ${parseFloat(limpiezaAmount).toFixed(2)}â‚¬ registrada correctamente.`);
+        setShowLimpiezaModal(false);
+        setLimpiezaAmount('');
+      } else {
+        setErrorMsg(data.error);
+        setShowLimpiezaModal(false);
+      }
+    } catch (err) {
+      setErrorMsg('Error de red.');
+      setShowLimpiezaModal(false);
+    }
+    setLimpiezaLoading(false);
   };
 
   const handleCheckOut = async (e) => {
     e.preventDefault();
     if (kmFin === '' || parseInt(kmFin, 10) < 0) {
-      setErrorMsg('Introduce un kilometraje final válido.');
+      setErrorMsg('Introduce un kilometraje final vÃ¡lido.');
       return;
     }
     if (parseInt(kmFin, 10) < jornadaActiva.km_inicio) {
-      setErrorMsg(`Los kilómetros finales no pueden ser inferiores a los iniciales (${jornadaActiva.km_inicio} km).`);
+      setErrorMsg(`Los kilÃ³metros finales no pueden ser inferiores a los iniciales (${jornadaActiva.km_inicio} km).`);
       return;
     }
     if (!fotoFinBase64) {
-      setErrorMsg('La fotografía del cuentakilómetros es obligatoria para finalizar la jornada.');
+      setErrorMsg('La fotografÃ­a del cuentakilÃ³metros es obligatoria para finalizar la jornada.');
       return;
     }
 
@@ -584,7 +618,7 @@ function ConductorDashboard({ token }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(`Jornada finalizada con éxito. Recorriste ${parseInt(kmFin, 10) - jornadaActiva.km_inicio} km.`);
+        setSuccessMsg(`Jornada finalizada con Ã©xito. Recorriste ${parseInt(kmFin, 10) - jornadaActiva.km_inicio} km.`);
         setJornadaActiva(null);
         setKmFin('');
         setFotoFinBase64('');
@@ -653,14 +687,14 @@ function ConductorDashboard({ token }) {
 
           <form onSubmit={handleCheckIn}>
             <div className="form-group">
-              <label className="form-label">Vehículo Disponible *</label>
+              <label className="form-label">VehÃ­culo Disponible *</label>
               <select 
                 className="form-input form-select"
                 value={selectedMatricula}
                 onChange={(e) => setSelectedMatricula(e.target.value)}
                 required
               >
-                <option value="">Selecciona una matrícula...</option>
+                <option value="">Selecciona una matrÃ­cula...</option>
                 {vehiculos.map(v => (
                   <option key={v.matricula} value={v.matricula}>
                     {v.matricula} - {v.marca_modelo}
@@ -670,11 +704,11 @@ function ConductorDashboard({ token }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Kilómetros Iniciales *</label>
+              <label className="form-label">KilÃ³metros Iniciales *</label>
               <input 
                 type="number" 
                 className="form-input" 
-                placeholder="Introduce km actuales del cuentakilómetros"
+                placeholder="Introduce km actuales del cuentakilÃ³metros"
                 value={kmInicio}
                 onChange={(e) => setKmInicio(e.target.value)}
                 min="0"
@@ -683,7 +717,7 @@ function ConductorDashboard({ token }) {
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Foto del Cuentakilómetros *</label>
+              <label className="form-label">Foto del CuentakilÃ³metros *</label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <button 
                   type="button" 
@@ -692,21 +726,21 @@ function ConductorDashboard({ token }) {
                   style={{ flex: 1 }}
                 >
                   <Camera size={18} />
-                  <span>Abrir Cámara / Galería</span>
+                  <span>Abrir CÃ¡mara / GalerÃ­a</span>
                 </button>
                 <input 
                   type="file" 
                   ref={fileInputRef}
                   style={{ display: 'none' }} 
                   accept="image/*"
-                  capture="environment" // Llama a la cámara trasera en móvil
+                  capture="environment" // Llama a la cÃ¡mara trasera en mÃ³vil
                   onChange={handlePhotoChange}
                 />
               </div>
               
               {fotoBase64 && (
                 <div style={{ marginTop: '0.75rem', position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                  <img src={fotoBase64} alt="Previsualización" style={{ width: '100%', display: 'block', maxHeight: '180px', objectFit: 'cover' }} />
+                  <img src={fotoBase64} alt="PrevisualizaciÃ³n" style={{ width: '100%', display: 'block', maxHeight: '180px', objectFit: 'cover' }} />
                   <button 
                     type="button"
                     onClick={() => setFotoBase64('')}
@@ -747,22 +781,22 @@ function ConductorDashboard({ token }) {
               </span>
             </div>
             <div style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Vehículo: <strong>{jornadaActiva.matricula}</strong>
+              VehÃ­culo: <strong>{jornadaActiva.matricula}</strong>
             </div>
           </div>
 
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-            {jornadaActiva.marca_modelo} • Km Inicio: <strong>{jornadaActiva.km_inicio} km</strong>
+            {jornadaActiva.marca_modelo} â€¢ Km Inicio: <strong>{jornadaActiva.km_inicio} km</strong>
           </p>
 
-          {/* Cronómetro Dinámico */}
+          {/* CronÃ³metro DinÃ¡mico */}
           <ShiftTimer 
             startTimeStr={jornadaActiva.hora_inicio} 
             estado={jornadaActiva.estado} 
             pausas={jornadaActiva.pausas || []} 
           />
 
-          {/* Controles de Pausa/Reanudación */}
+          {/* Controles de Pausa/ReanudaciÃ³n */}
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
             {jornadaActiva.estado === 'ACTIVA' ? (
               <>
@@ -773,6 +807,10 @@ function ConductorDashboard({ token }) {
                 <button onClick={() => setShowRefuelModal(true)} className="btn btn-primary" style={{ flex: 1, height: '2.6rem', minWidth: '140px' }}>
                   <Fuel size={18} />
                   <span>Repostar</span>
+                </button>
+                <button onClick={() => setShowLimpiezaModal(true)} className="btn btn-primary" style={{ flex: 1, height: '2.6rem', minWidth: '140px', background: 'var(--color-info)' }}>
+                  <Droplet size={18} />
+                  <span>Limpieza</span>
                 </button>
               </>
             ) : (
@@ -788,11 +826,11 @@ function ConductorDashboard({ token }) {
           {/* FORMULARIO DE CHECK-OUT */}
           <form onSubmit={handleCheckOut}>
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Kilómetros Finales *</label>
+              <label className="form-label">KilÃ³metros Finales *</label>
               <input 
                 type="number" 
                 className="form-input" 
-                placeholder="Introduce kilómetros finales"
+                placeholder="Introduce kilÃ³metros finales"
                 value={kmFin}
                 onChange={(e) => setKmFin(e.target.value)}
                 min={jornadaActiva.km_inicio}
@@ -807,7 +845,7 @@ function ConductorDashboard({ token }) {
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Foto del Cuentakilómetros *</label>
+              <label className="form-label">Foto del CuentakilÃ³metros *</label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <button 
                   type="button" 
@@ -816,7 +854,7 @@ function ConductorDashboard({ token }) {
                   style={{ flex: 1 }}
                 >
                   <Camera size={18} />
-                  <span>Abrir Cámara / Galería</span>
+                  <span>Abrir CÃ¡mara / GalerÃ­a</span>
                 </button>
                 <input 
                   type="file" 
@@ -829,13 +867,13 @@ function ConductorDashboard({ token }) {
               </div>
               {fotoFinBase64 && (
                 <div style={{ marginTop: '1rem', position: 'relative' }}>
-                  <img src={fotoFinBase64} alt="Cuentakilómetros fin" style={{ width: '100%', borderRadius: 'var(--radius-md)' }} />
+                  <img src={fotoFinBase64} alt="CuentakilÃ³metros fin" style={{ width: '100%', borderRadius: 'var(--radius-md)' }} />
                   <button 
                     type="button" 
                     onClick={() => setFotoFinBase64('')}
                     style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer' }}
                   >
-                    ×
+                    Ã—
                   </button>
                 </div>
               )}
@@ -863,7 +901,7 @@ function ConductorDashboard({ token }) {
             </h3>
             <form onSubmit={handleRefuel}>
               <div className="form-group">
-                <label className="form-label">Coste del repostaje (€) *</label>
+                <label className="form-label">Coste del repostaje (â‚¬) *</label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -877,7 +915,7 @@ function ConductorDashboard({ token }) {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Kilómetros actuales del vehículo *</label>
+                <label className="form-label">KilÃ³metros actuales del vehÃ­culo *</label>
                 <input 
                   type="number" 
                   min="0"
@@ -904,7 +942,53 @@ function ConductorDashboard({ token }) {
                   style={{ flex: 1 }}
                   disabled={refuelLoading}
                 >
-                  {refuelLoading ? <RefreshCw size={18} className="animate-spin" /> : 'Guardar'}
+                  Registrar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL LIMPIEZA */}
+      {showLimpiezaModal && (
+        <div className="modal-overlay animate-fade-in" onClick={() => !limpiezaLoading && setShowLimpiezaModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Droplet size={20} style={{ color: 'var(--color-info)' }} /> Registrar Limpieza
+            </h3>
+            <form onSubmit={handleLimpieza}>
+              <div className="form-group">
+                <label className="form-label">Coste de la limpieza (â‚¬) *</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  min="0.1"
+                  className="form-input" 
+                  placeholder="Ej: 15.00"
+                  value={limpiezaAmount}
+                  onChange={(e) => setLimpiezaAmount(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowLimpiezaModal(false)}
+                  style={{ flex: 1 }}
+                  disabled={limpiezaLoading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  style={{ flex: 1, background: 'var(--color-info)' }}
+                  disabled={limpiezaLoading}
+                >
+                  Registrar
                 </button>
               </div>
             </form>
@@ -915,12 +999,12 @@ function ConductorDashboard({ token }) {
   );
 }
 
-/* COMPONENTE AUXILIAR: CRONÓMETRO */
+/* COMPONENTE AUXILIAR: CRONÃ“METRO */
 function ShiftTimer({ startTimeStr, estado, pausas }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
-    // Función para calcular segundos netos de jornada activa
+    // FunciÃ³n para calcular segundos netos de jornada activa
     const calculateSeconds = () => {
       const start = new Date(startTimeStr).getTime();
       const now = Date.now();
@@ -978,7 +1062,7 @@ function AdminDashboard({ token }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-      {/* Menú de pestañas */}
+      {/* MenÃº de pestaÃ±as */}
       <div className="glass-card" style={{ padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)' }}>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button 
@@ -1002,7 +1086,7 @@ function AdminDashboard({ token }) {
             onClick={() => setActiveTab('vehiculos')}
           >
             <Car size={18} />
-            <span>Vehículos</span>
+            <span>VehÃ­culos</span>
           </button>
           
           <button 
@@ -1012,15 +1096,24 @@ function AdminDashboard({ token }) {
             <Fuel size={18} />
             <span>Repostajes</span>
           </button>
+
+          <button 
+            className={`btn ${activeTab === 'limpiezas' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('limpiezas')}
+          >
+            <Droplet size={18} />
+            <span>Limpiezas</span>
+          </button>
         </div>
       </div>
 
-      {/* Renderizado de Pestañas */}
+      {/* Renderizado de PestaÃ±as */}
       <div className="animate-fade-in">
         {activeTab === 'conductores' && <AdminDrivers token={token} />}
         {activeTab === 'vehiculos' && <AdminVehicles token={token} />}
         {activeTab === 'reportes' && <AdminReports token={token} />}
         {activeTab === 'repostajes' && <AdminRepostajes token={token} />}
+        {activeTab === 'limpiezas' && <AdminLimpiezas token={token} />}
       </div>
     </div>
   );
@@ -1034,9 +1127,9 @@ function AdminDrivers({ token }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Modal de añadir/editar
+  // Modal de aÃ±adir/editar
   const [showModal, setShowModal] = useState(false);
-  const [editingDriver, setEditingDriver] = useState(null); // null para añadir, objeto conductor para editar
+  const [editingDriver, setEditingDriver] = useState(null); // null para aÃ±adir, objeto conductor para editar
   const [formData, setFormData] = useState({ username: '', password: '', activo: true });
 
   useEffect(() => {
@@ -1105,14 +1198,14 @@ function AdminDrivers({ token }) {
         setErrorMsg(data.error || 'Error al guardar.');
       }
     } catch (err) {
-      setErrorMsg('Error de conexión.');
+      setErrorMsg('Error de conexiÃ³n.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de que deseas dar de baja a este conductor? Se liberará su vehículo si está conduciendo.')) {
+    if (!window.confirm('Â¿EstÃ¡s seguro de que deseas dar de baja a este conductor? Se liberarÃ¡ su vehÃ­culo si estÃ¡ conduciendo.')) {
       return;
     }
     try {
@@ -1131,10 +1224,10 @@ function AdminDrivers({ token }) {
   return (
     <div className="glass-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h3>Gestión de Conductores</h3>
+        <h3>GestiÃ³n de Conductores</h3>
         <button className="btn btn-primary" onClick={handleOpenAdd}>
           <Plus size={16} />
-          <span>Añadir Conductor</span>
+          <span>AÃ±adir Conductor</span>
         </button>
       </div>
 
@@ -1203,7 +1296,7 @@ function AdminDrivers({ token }) {
 
               <div className="form-group">
                 <label className="form-label">
-                  Contraseña {editingDriver && '(Dejar vacío para mantener)'} *
+                  ContraseÃ±a {editingDriver && '(Dejar vacÃ­o para mantener)'} *
                 </label>
                 <input 
                   type="password" 
@@ -1244,14 +1337,14 @@ function AdminDrivers({ token }) {
 }
 
 /* ==========================================
-   ADMIN - CRUD VEHÍCULOS
+   ADMIN - CRUD VEHÃCULOS
    ========================================== */
 function AdminVehicles({ token }) {
   const [vehiculos, setVehiculos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Modal de añadir/editar
+  // Modal de aÃ±adir/editar
   const [showModal, setShowModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [formData, setFormData] = useState({ matricula: '', marca_modelo: '', km_iniciales: 0, km_actuales: 0, activo: true, en_uso: false });
@@ -1277,7 +1370,7 @@ function AdminVehicles({ token }) {
         setVehiculos(data);
       }
     } catch (err) {
-      setErrorMsg('Error al cargar vehículos.');
+      setErrorMsg('Error al cargar vehÃ­culos.');
     } finally {
       setLoading(false);
     }
@@ -1325,7 +1418,7 @@ function AdminVehicles({ token }) {
         loadVehicles();
       } else {
         const data = await res.json();
-        setErrorMsg(data.error || 'Error al guardar vehículo.');
+        setErrorMsg(data.error || 'Error al guardar vehÃ­culo.');
       }
     } catch (err) {
       setErrorMsg('Error de red.');
@@ -1362,10 +1455,10 @@ function AdminVehicles({ token }) {
   return (
     <div className="glass-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h3>Gestión de Flota de Vehículos</h3>
+        <h3>GestiÃ³n de Flota de VehÃ­culos</h3>
         <button className="btn btn-primary" onClick={handleOpenAdd}>
           <Plus size={16} />
-          <span>Añadir Vehículo</span>
+          <span>AÃ±adir VehÃ­culo</span>
         </button>
       </div>
 
@@ -1375,7 +1468,7 @@ function AdminVehicles({ token }) {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Matrícula</th>
+              <th>MatrÃ­cula</th>
               <th>Marca y Modelo</th>
               <th>Km Iniciales</th>
               <th>Km Actuales</th>
@@ -1430,7 +1523,7 @@ function AdminVehicles({ token }) {
         }}>
           <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-main)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h4>{editingVehicle ? 'Editar Vehículo' : 'Nuevo Vehículo'}</h4>
+              <h4>{editingVehicle ? 'Editar VehÃ­culo' : 'Nuevo VehÃ­culo'}</h4>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
@@ -1438,7 +1531,7 @@ function AdminVehicles({ token }) {
 
             <form onSubmit={handleSave}>
               <div className="form-group">
-                <label className="form-label">Matrícula *</label>
+                <label className="form-label">MatrÃ­cula *</label>
                 <input 
                   type="text" 
                   className="form-input" 
@@ -1464,7 +1557,7 @@ function AdminVehicles({ token }) {
 
               <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
-                  <label className="form-label">Kilómetros Iniciales</label>
+                  <label className="form-label">KilÃ³metros Iniciales</label>
                   <input 
                     type="number" 
                     className="form-input" 
@@ -1475,7 +1568,7 @@ function AdminVehicles({ token }) {
                   />
                 </div>
                 <div>
-                  <label className="form-label">Kilómetros Actuales</label>
+                  <label className="form-label">KilÃ³metros Actuales</label>
                   <input 
                     type="number" 
                     className="form-input" 
@@ -1497,7 +1590,7 @@ function AdminVehicles({ token }) {
                       onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
                       style={{ width: '1.25rem', height: '1.25rem' }}
                     />
-                    <label htmlFor="activoVehiculo" className="form-label" style={{ cursor: 'pointer', margin: 0 }}>Vehículo Activo (para asignaciones)</label>
+                    <label htmlFor="activoVehiculo" className="form-label" style={{ cursor: 'pointer', margin: 0 }}>VehÃ­culo Activo (para asignaciones)</label>
                   </div>
                   
                   <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
@@ -1526,7 +1619,7 @@ function AdminVehicles({ token }) {
         </div>
       )}
 
-      {/* MODAL HISTORIAL VEHÍCULO */}
+      {/* MODAL HISTORIAL VEHÃCULO */}
       {historyVehicle && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -1562,7 +1655,7 @@ function AdminVehicles({ token }) {
               <div>
                 {!historyData || historyData.length === 0 ? (
                   <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No hay registros de uso para este vehículo en la fecha seleccionada.
+                    No hay registros de uso para este vehÃ­culo en la fecha seleccionada.
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1664,8 +1757,8 @@ function AdminReports({ token }) {
     if (reportsData.detalles.length === 0) return;
 
     // Cabeceras del CSV
-    let csvContent = 'data:text/csv;charset=utf-8,\uFEFF'; // Añadir BOM para caracteres especiales de Excel
-    csvContent += 'Fecha;Conductor;Vehículo;Km Inicio;Km Fin;Km Recorridos;Hora Inicio;Hora Fin\n';
+    let csvContent = 'data:text/csv;charset=utf-8,\uFEFF'; // AÃ±adir BOM para caracteres especiales de Excel
+    csvContent += 'Fecha;Conductor;VehÃ­culo;Km Inicio;Km Fin;Km Recorridos;Hora Inicio;Hora Fin\n';
 
     reportsData.detalles.forEach(r => {
       const dateStr = new Date(r.hora_inicio).toLocaleDateString();
@@ -1689,7 +1782,7 @@ function AdminReports({ token }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* TARJETAS DE AGREGACIÓN */}
+      {/* TARJETAS DE AGREGACIÃ“N */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
         
         <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
@@ -1697,7 +1790,7 @@ function AdminReports({ token }) {
             <TrendingUp size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Kilómetros Recorridos</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total KilÃ³metros Recorridos</div>
             <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>
               {reportsData.resumen.totalKilometros.toLocaleString()} km
             </div>
@@ -1784,7 +1877,7 @@ function AdminReports({ token }) {
               <tr>
                 <th>Fecha</th>
                 <th>Conductor</th>
-                <th>Vehículo</th>
+                <th>VehÃ­culo</th>
                 <th>Km Inicio</th>
                 <th>Km Fin</th>
                 <th>Total Km</th>
@@ -1941,7 +2034,7 @@ function ReportDetailModal({ report, onClose }) {
             <div style={{ fontWeight: 600 }}>{report.conductor}</div>
           </div>
           <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Vehículo</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>VehÃ­culo</div>
             <div style={{ fontWeight: 600 }}>{report.matricula}</div>
           </div>
           <div>
@@ -2024,6 +2117,34 @@ function ReportDetailModal({ report, onClose }) {
           </div>
         )}
 
+        <h4 style={{ fontSize: '1rem', marginTop: '2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Droplet size={16} style={{ color: 'var(--color-info)' }} />
+          Registro de Limpiezas
+        </h4>
+        
+        {(!report.limpiezas || report.limpiezas.length === 0) ? (
+          <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            No se registraron limpiezas en esta jornada.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {report.limpiezas.map((r, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-info)' }}></div>
+                  <span style={{ fontSize: '0.9rem' }}>Limpieza {idx + 1}</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {formatTime(r.fecha_hora)}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-info)' }}>
+                  {parseFloat(r.cantidad_euros).toFixed(2)} €
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button className="btn btn-secondary" style={{ width: '100%', marginTop: '2rem' }} onClick={onClose}>
           Cerrar Detalle
         </button>
@@ -2089,7 +2210,7 @@ function AdminRepostajes({ token }) {
         setErrorMsg('Error al cargar datos.');
       }
     } catch (err) {
-      setErrorMsg('Error de conexión.');
+      setErrorMsg('Error de conexiÃ³n.');
     } finally {
       setLoading(false);
     }
@@ -2117,6 +2238,200 @@ function AdminRepostajes({ token }) {
       {/* FILTROS */}
       <div className="glass-card">
         <form onSubmit={fetchRepostajes} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Conductor</label>
+            <select 
+              className="form-input form-select"
+              value={selectedConductor}
+              onChange={(e) => setSelectedConductor(e.target.value)}
+            >
+              <option value="todos">Todos</option>
+              {conductores.map(c => (
+                <option key={c.id} value={c.id}>{c.username}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">MatrÃ­cula</label>
+            <select 
+              className="form-input form-select"
+              value={matricula}
+              onChange={(e) => setMatricula(e.target.value)}
+            >
+              <option value="">Todas</option>
+              {vehiculos.map(v => (
+                <option key={v.matricula} value={v.matricula}>{v.matricula}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Fecha Inicio</label>
+            <input 
+              type="date" 
+              className="form-input" 
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Fecha Fin</label>
+            <input 
+              type="date" 
+              className="form-input" 
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1, height: '2.5rem' }} disabled={loading}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              <span>Filtrar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* RESULTADOS */}
+      <div className="glass-card">
+        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Repostajes</h3>
+        {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{errorMsg}</div>}
+        
+        <div className="table-container">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Fecha y Hora</th>
+                <th>Conductor</th>
+                <th>VehÃ­culo</th>
+                <th>KilÃ³metros</th>
+                <th>Coste</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repostajesData.detalles.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    No se han encontrado repostajes con estos filtros.
+                  </td>
+                </tr>
+              ) : (
+                repostajesData.detalles.map(r => (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>{new Date(r.fecha_hora).toLocaleDateString()}</strong> 
+                      <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
+                        {new Date(r.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td>{r.conductor}</td>
+                    <td>{r.matricula}</td>
+                    <td>{r.km_repostaje} km</td>
+                    <td>
+                      <span className="badge badge-success" style={{ fontWeight: 700 }}>
+                        {parseFloat(r.cantidad_euros).toFixed(2)} â‚¬
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ==========================================
+   ADMIN - LIMPIEZAS
+   ========================================== */
+function AdminLimpiezas({ token }) {
+  const [limpiezasData, setLimpiezasData] = useState({ resumen: { totalEuros: 0, totalLimpiezas: 0 }, detalles: [] });
+  const [conductores, setConductores] = useState([]);
+  const [vehiculos, setVehiculos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Filtros
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [selectedConductor, setSelectedConductor] = useState('todos');
+  const [fechaInicio, setFechaInicio] = useState(todayStr);
+  const [fechaFin, setFechaFin] = useState(todayStr);
+  const [matricula, setMatricula] = useState('');
+
+  useEffect(() => {
+    fetchConductores();
+    fetchVehiculos();
+    fetchLimpiezas();
+  }, []);
+
+  const fetchConductores = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/conductores`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setConductores(await res.json());
+    } catch (err) {}
+  };
+
+  const fetchVehiculos = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/vehiculos`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) setVehiculos(await res.json());
+    } catch (err) {}
+  };
+
+  const fetchLimpiezas = async (e) => {
+    if (e) e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      let query = `?conductorId=${selectedConductor}`;
+      if (fechaInicio) query += `&fechaInicio=${fechaInicio}`;
+      if (fechaFin) query += `&fechaFin=${fechaFin}`;
+      if (matricula) query += `&matricula=${matricula}`;
+
+      const res = await fetch(`${API_URL}/admin/limpiezas${query}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLimpiezasData(data);
+      } else {
+        setErrorMsg('Error al cargar datos');
+      }
+    } catch (err) {
+      setErrorMsg('Error de red');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      
+      {/* RESUMEN */}
+      <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
+        <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(59,130,246,0.1)', color: 'var(--color-info)' }}>
+          <Droplet size={24} />
+        </div>
+        <div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Gastado en Limpiezas</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>
+            {limpiezasData.resumen.totalEuros.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {limpiezasData.resumen.totalLimpiezas} limpiezas encontradas
+          </div>
+        </div>
+      </div>
+
+      {/* FILTROS */}
+      <div className="glass-card">
+        <form onSubmit={fetchLimpiezas} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', alignItems: 'end' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Conductor</label>
             <select 
@@ -2176,7 +2491,7 @@ function AdminRepostajes({ token }) {
 
       {/* RESULTADOS */}
       <div className="glass-card">
-        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Repostajes</h3>
+        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Limpiezas</h3>
         {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{errorMsg}</div>}
         
         <div className="table-container">
@@ -2186,19 +2501,18 @@ function AdminRepostajes({ token }) {
                 <th>Fecha y Hora</th>
                 <th>Conductor</th>
                 <th>Vehículo</th>
-                <th>Kilómetros</th>
                 <th>Coste</th>
               </tr>
             </thead>
             <tbody>
-              {repostajesData.detalles.length === 0 ? (
+              {limpiezasData.detalles.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    No se han encontrado repostajes con estos filtros.
+                  <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    No se han encontrado limpiezas con estos filtros.
                   </td>
                 </tr>
               ) : (
-                repostajesData.detalles.map(r => (
+                limpiezasData.detalles.map(r => (
                   <tr key={r.id}>
                     <td>
                       <strong>{new Date(r.fecha_hora).toLocaleDateString()}</strong> 
@@ -2208,9 +2522,8 @@ function AdminRepostajes({ token }) {
                     </td>
                     <td>{r.conductor}</td>
                     <td>{r.matricula}</td>
-                    <td>{r.km_repostaje} km</td>
                     <td>
-                      <span className="badge badge-success" style={{ fontWeight: 700 }}>
+                      <span className="badge badge-info" style={{ fontWeight: 700 }}>
                         {parseFloat(r.cantidad_euros).toFixed(2)} €
                       </span>
                     </td>
@@ -2224,4 +2537,3 @@ function AdminRepostajes({ token }) {
     </div>
   );
 }
-

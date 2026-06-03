@@ -16,7 +16,15 @@ export async function GET(req) {
       )
     `);
     await pool.query('ALTER TABLE repostajes ADD COLUMN IF NOT EXISTS km_repostaje INTEGER NOT NULL DEFAULT 0');
-    return NextResponse.json({ success: true, message: 'Migración completada: km_actuales y km_iniciales añadidos a vehiculos.' });
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS limpiezas (
+          id SERIAL PRIMARY KEY,
+          id_jornada INTEGER NOT NULL REFERENCES jornadas(id) ON DELETE CASCADE,
+          cantidad_euros DECIMAL(10,2) NOT NULL,
+          fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+      )
+    `);
+    return NextResponse.json({ success: true, message: 'Migración completada.' });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });

@@ -58,6 +58,14 @@ CREATE TABLE repostajes (
     fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
+-- 6. Tabla: limpiezas (Registro de gastos de limpieza por jornada)
+CREATE TABLE limpiezas (
+    id SERIAL PRIMARY KEY,
+    id_jornada INTEGER NOT NULL REFERENCES jornadas(id) ON DELETE CASCADE,
+    cantidad_euros DECIMAL(10,2) NOT NULL,
+    fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
 -- Índices recomendados para optimización de búsquedas y reportes
 CREATE INDEX idx_jornadas_conductor ON jornadas(id_conductor);
 CREATE INDEX idx_jornadas_matricula ON jornadas(matricula);
