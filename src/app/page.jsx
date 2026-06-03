@@ -23,7 +23,8 @@ import {
   Monitor,
   AlertCircle,
   History,
-  Fuel
+  Fuel,
+  Droplet
 } from 'lucide-react';
 
 const API_URL = '/api';
