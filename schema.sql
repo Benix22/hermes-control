@@ -54,6 +54,7 @@ CREATE TABLE repostajes (
     id SERIAL PRIMARY KEY,
     id_jornada INTEGER NOT NULL REFERENCES jornadas(id) ON DELETE CASCADE,
     cantidad_euros DECIMAL(10,2) NOT NULL,
+    km_repostaje INTEGER NOT NULL,
     fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 

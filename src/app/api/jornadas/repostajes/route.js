@@ -7,9 +7,12 @@ export async function POST(req) {
     const auth = verifyAuth(req);
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-    const { cantidad_euros } = await req.json();
+    const { cantidad_euros, km_repostaje } = await req.json();
     if (!cantidad_euros || isNaN(parseFloat(cantidad_euros)) || parseFloat(cantidad_euros) <= 0) {
       return NextResponse.json({ error: 'Cantidad en euros inválida.' }, { status: 400 });
+    }
+    if (km_repostaje === undefined || km_repostaje === '' || parseInt(km_repostaje, 10) < 0) {
+      return NextResponse.json({ error: 'Los kilómetros del vehículo son obligatorios.' }, { status: 400 });
     }
 
     // Comprobar que el usuario tiene una jornada activa
@@ -21,8 +24,8 @@ export async function POST(req) {
     const id_jornada = active.rows[0].id;
 
     const result = await pool.query(
-      'INSERT INTO repostajes (id_jornada, cantidad_euros) VALUES ($1, $2) RETURNING *',
-      [id_jornada, parseFloat(cantidad_euros)]
+      'INSERT INTO repostajes (id_jornada, cantidad_euros, km_repostaje) VALUES ($1, $2, $3) RETURNING *',
+      [id_jornada, parseFloat(cantidad_euros), parseInt(km_repostaje, 10)]
     );
 
     return NextResponse.json(result.rows[0], { status: 201 });

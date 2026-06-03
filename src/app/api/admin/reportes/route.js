@@ -30,7 +30,8 @@ export async function GET(req) {
         SELECT COALESCE(json_agg(
             json_build_object(
                 'fecha_hora', r.fecha_hora,
-                'cantidad_euros', r.cantidad_euros
+                'cantidad_euros', r.cantidad_euros,
+                'km_repostaje', r.km_repostaje
             ) ORDER BY r.fecha_hora ASC
         ), '[]'::json)
         FROM repostajes r WHERE r.id_jornada = j.id

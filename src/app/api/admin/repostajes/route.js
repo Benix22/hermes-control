@@ -18,6 +18,7 @@ export async function GET(req) {
       SELECT 
         r.id, 
         r.cantidad_euros, 
+        r.km_repostaje,
         r.fecha_hora, 
         j.matricula, 
         u.username AS conductor

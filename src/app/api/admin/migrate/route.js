@@ -11,9 +11,11 @@ export async function GET(req) {
           id SERIAL PRIMARY KEY,
           id_jornada INTEGER NOT NULL REFERENCES jornadas(id) ON DELETE CASCADE,
           cantidad_euros DECIMAL(10,2) NOT NULL,
+          km_repostaje INTEGER NOT NULL DEFAULT 0,
           fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
       )
     `);
+    await pool.query('ALTER TABLE repostajes ADD COLUMN IF NOT EXISTS km_repostaje INTEGER NOT NULL DEFAULT 0');
     return NextResponse.json({ success: true, message: 'Migración completada: km_actuales y km_iniciales añadidos a vehiculos.' });
   } catch (err) {
     console.error(err);

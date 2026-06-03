@@ -277,6 +277,7 @@ function ConductorDashboard({ token }) {
   // Modal repostaje
   const [showRefuelModal, setShowRefuelModal] = useState(false);
   const [refuelAmount, setRefuelAmount] = useState('');
+  const [refuelKm, setRefuelKm] = useState('');
   const [refuelLoading, setRefuelLoading] = useState(false);
   
   // Datos de Check-out
@@ -516,6 +517,11 @@ function ConductorDashboard({ token }) {
   const handleRefuel = async (e) => {
     e.preventDefault();
     if (!refuelAmount || parseFloat(refuelAmount) <= 0) return;
+    if (!refuelKm || parseInt(refuelKm, 10) < 0) {
+      setErrorMsg('Debes introducir los kilómetros actuales del vehículo.');
+      setShowRefuelModal(false);
+      return;
+    }
     setRefuelLoading(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -523,13 +529,17 @@ function ConductorDashboard({ token }) {
       const res = await fetch(`${API_URL}/jornadas/repostajes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ cantidad_euros: parseFloat(refuelAmount) })
+        body: JSON.stringify({ 
+          cantidad_euros: parseFloat(refuelAmount),
+          km_repostaje: parseInt(refuelKm, 10)
+        })
       });
       const data = await res.json();
       if (res.ok) {
         setSuccessMsg(`Repostaje de ${parseFloat(refuelAmount).toFixed(2)}€ registrado correctamente.`);
         setShowRefuelModal(false);
         setRefuelAmount('');
+        setRefuelKm('');
       } else {
         setErrorMsg(data.error);
         setShowRefuelModal(false);
@@ -853,7 +863,7 @@ function ConductorDashboard({ token }) {
             </h3>
             <form onSubmit={handleRefuel}>
               <div className="form-group">
-                <label className="form-label">Coste del repostaje (€)</label>
+                <label className="form-label">Coste del repostaje (€) *</label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -864,6 +874,18 @@ function ConductorDashboard({ token }) {
                   onChange={(e) => setRefuelAmount(e.target.value)}
                   required
                   autoFocus
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Kilómetros actuales del vehículo *</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  className="form-input" 
+                  placeholder="Ej: 120500"
+                  value={refuelKm}
+                  onChange={(e) => setRefuelKm(e.target.value)}
+                  required
                 />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
@@ -1991,6 +2013,9 @@ function ReportDetailModal({ report, onClose }) {
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   {formatTime(r.fecha_hora)}
                 </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {r.km_repostaje ? `${r.km_repostaje} km` : 'N/A'}
+                </div>
                 <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-success)' }}>
                   {parseFloat(r.cantidad_euros).toFixed(2)} €
                 </div>
@@ -2160,13 +2185,14 @@ function AdminRepostajes({ token }) {
                 <th>Fecha y Hora</th>
                 <th>Conductor</th>
                 <th>Vehículo</th>
+                <th>Kilómetros</th>
                 <th>Coste</th>
               </tr>
             </thead>
             <tbody>
               {repostajesData.detalles.length === 0 ? (
                 <tr>
-                  <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
                     No se han encontrado repostajes con estos filtros.
                   </td>
                 </tr>
@@ -2181,6 +2207,7 @@ function AdminRepostajes({ token }) {
                     </td>
                     <td>{r.conductor}</td>
                     <td>{r.matricula}</td>
+                    <td>{r.km_repostaje} km</td>
                     <td>
                       <span className="badge badge-success" style={{ fontWeight: 700 }}>
                         {parseFloat(r.cantidad_euros).toFixed(2)} €
