@@ -7,8 +7,9 @@ export async function POST(req) {
     const auth = verifyAuth(req);
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-    const { km_fin } = await req.json();
+    const { km_fin, url_foto_fin_km } = await req.json();
     if (km_fin === undefined) return NextResponse.json({ error: 'Kilómetros finales obligatorios.' }, { status: 400 });
+    if (!url_foto_fin_km) return NextResponse.json({ error: 'La fotografía del cuentakilómetros es obligatoria para finalizar la jornada.' }, { status: 400 });
 
     const kmFinNum = parseInt(km_fin, 10);
     const client = await pool.connect();
@@ -25,8 +26,8 @@ export async function POST(req) {
       }
 
       const updateShift = await client.query(
-        "UPDATE jornadas SET km_fin = $1, hora_fin = NOW(), estado = 'FINALIZADA' WHERE id = $2 RETURNING *",
-        [kmFinNum, shift.id]
+        "UPDATE jornadas SET km_fin = $1, hora_fin = NOW(), url_foto_fin_km = $2, estado = 'FINALIZADA' WHERE id = $3 RETURNING *",
+        [kmFinNum, url_foto_fin_km, shift.id]
       );
       await client.query('UPDATE vehiculos SET en_uso = FALSE, km_actuales = $2 WHERE matricula = $1', [shift.matricula, kmFinNum]);
       await client.query('COMMIT');

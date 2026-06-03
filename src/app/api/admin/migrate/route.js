@@ -5,6 +5,7 @@ export async function GET(req) {
   try {
     await pool.query('ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS km_actuales INTEGER DEFAULT 0 NOT NULL');
     await pool.query('ALTER TABLE vehiculos ADD COLUMN IF NOT EXISTS km_iniciales INTEGER DEFAULT 0 NOT NULL');
+    await pool.query('ALTER TABLE jornadas ADD COLUMN IF NOT EXISTS url_foto_fin_km TEXT');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS repostajes (
           id SERIAL PRIMARY KEY,

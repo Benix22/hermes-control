@@ -36,7 +36,8 @@ CREATE TABLE jornadas (
     km_fin INTEGER, -- NULL hasta el check-out
     hora_inicio TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     hora_fin TIMESTAMP WITH TIME ZONE, -- NULL hasta el check-out
-    url_foto_km TEXT, -- Almacena la imagen en formato Base64
+    url_foto_km TEXT, -- Almacena la imagen en formato Base64 (inicio)
+    url_foto_fin_km TEXT, -- Almacena la imagen en formato Base64 (fin)
     estado VARCHAR(20) DEFAULT 'ACTIVA' NOT NULL CHECK (estado IN ('ACTIVA', 'PAUSADA', 'FINALIZADA'))
 );
 

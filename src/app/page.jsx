@@ -281,10 +281,12 @@ function ConductorDashboard({ token }) {
   
   // Datos de Check-out
   const [kmFin, setKmFin] = useState('');
+  const [fotoFinBase64, setFotoFinBase64] = useState('');
   
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const fileInputRef = useRef(null);
+  const fileInputFinRef = useRef(null);
 
   useEffect(() => {
     loadActiveShift();
@@ -373,6 +375,50 @@ function ConductorDashboard({ token }) {
         // Convertir a JPEG con calidad 0.7
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         setFotoBase64(dataUrl);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePhotoFinChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('El archivo seleccionado debe ser una imagen.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setFotoFinBase64(dataUrl);
       };
       img.src = event.target.result;
     };
@@ -506,6 +552,10 @@ function ConductorDashboard({ token }) {
       setErrorMsg(`Los kilómetros finales no pueden ser inferiores a los iniciales (${jornadaActiva.km_inicio} km).`);
       return;
     }
+    if (!fotoFinBase64) {
+      setErrorMsg('La fotografía del cuentakilómetros es obligatoria para finalizar la jornada.');
+      return;
+    }
 
     setLoading(true);
     setErrorMsg('');
@@ -518,7 +568,8 @@ function ConductorDashboard({ token }) {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          km_fin: parseInt(kmFin, 10)
+          km_fin: parseInt(kmFin, 10),
+          url_foto_fin_km: fotoFinBase64
         })
       });
       const data = await res.json();
@@ -526,6 +577,7 @@ function ConductorDashboard({ token }) {
         setSuccessMsg(`Jornada finalizada con éxito. Recorriste ${parseInt(kmFin, 10) - jornadaActiva.km_inicio} km.`);
         setJornadaActiva(null);
         setKmFin('');
+        setFotoFinBase64('');
         loadVehicles();
       } else {
         setErrorMsg(data.error || 'Error al finalizar jornada.');
@@ -740,6 +792,41 @@ function ConductorDashboard({ token }) {
               {kmFin && parseInt(kmFin, 10) >= jornadaActiva.km_inicio && (
                 <div style={{ fontSize: '0.85rem', color: 'var(--color-success)', marginTop: '0.25rem' }}>
                   Distancia total recorrida: <strong>{parseInt(kmFin, 10) - jornadaActiva.km_inicio} km</strong>
+                </div>
+              )}
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Foto del Cuentakilómetros *</label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={() => fileInputFinRef.current.click()}
+                  style={{ flex: 1 }}
+                >
+                  <Camera size={18} />
+                  <span>Abrir Cámara / Galería</span>
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputFinRef}
+                  style={{ display: 'none' }} 
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoFinChange}
+                />
+              </div>
+              {fotoFinBase64 && (
+                <div style={{ marginTop: '1rem', position: 'relative' }}>
+                  <img src={fotoFinBase64} alt="Cuentakilómetros fin" style={{ width: '100%', borderRadius: 'var(--radius-md)' }} />
+                  <button 
+                    type="button" 
+                    onClick={() => setFotoFinBase64('')}
+                    style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer' }}
+                  >
+                    ×
+                  </button>
                 </div>
               )}
             </div>
