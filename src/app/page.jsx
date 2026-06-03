@@ -389,6 +389,10 @@ function ConductorDashboard({ token }) {
       setErrorMsg('Debes introducir un kilometraje inicial válido.');
       return;
     }
+    if (!fotoBase64) {
+      setErrorMsg('La fotografía del cuentakilómetros es obligatoria para iniciar la jornada.');
+      return;
+    }
 
     setLoading(true);
     setErrorMsg('');
@@ -617,7 +621,7 @@ function ConductorDashboard({ token }) {
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Foto del Cuentakilómetros (Opcional)</label>
+              <label className="form-label">Foto del Cuentakilómetros *</label>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <button 
                   type="button" 

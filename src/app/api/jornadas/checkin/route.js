@@ -9,6 +9,7 @@ export async function POST(req) {
 
     const { matricula, km_inicio, url_foto_km } = await req.json();
     if (!matricula || km_inicio === undefined) return NextResponse.json({ error: 'Matrícula y Kilómetros Iniciales son obligatorios.' }, { status: 400 });
+    if (!url_foto_km) return NextResponse.json({ error: 'La fotografía del cuentakilómetros es obligatoria para iniciar la jornada.' }, { status: 400 });
 
     const kmInicioNum = parseInt(km_inicio, 10);
     const client = await pool.connect();
