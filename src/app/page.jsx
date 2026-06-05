@@ -2065,7 +2065,7 @@ function AdminReports({ token }) {
         <ReportDetailModal 
           report={selectedReport} 
           onClose={() => setSelectedReport(null)} 
-          onRefresh={fetchReports}
+          onRefresh={handleFetchReport}
           token={token}
         />
       )}
