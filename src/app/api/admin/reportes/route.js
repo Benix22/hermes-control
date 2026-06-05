@@ -45,7 +45,7 @@ export async function GET(req) {
         ), '[]'::json)
         FROM limpiezas l WHERE l.id_jornada = j.id
       ) as limpiezas
-      FROM jornadas j JOIN usuarios u ON j.id_conductor = u.id WHERE j.estado = 'FINALIZADA'`;
+      FROM jornadas j JOIN usuarios u ON j.id_conductor = u.id WHERE 1=1`;
     const params = [];
 
     if (conductorId && conductorId !== 'todos') {

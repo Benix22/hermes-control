@@ -1932,7 +1932,7 @@ function AdminReports({ token }) {
 
       {/* TABLA DE RESULTADOS */}
       <div className="glass-card">
-        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Jornadas Cerradas</h3>
+        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Jornadas</h3>
         
         <div className="table-container">
           <table className="admin-table">
@@ -1975,11 +1975,15 @@ function AdminReports({ token }) {
                       <td>{r.conductor}</td>
                       <td>{r.matricula}</td>
                       <td>{r.km_inicio} km</td>
-                      <td>{r.km_fin} km</td>
+                      <td>{r.km_fin !== null ? `${r.km_fin} km` : <span style={{color: 'var(--text-muted)'}}>En curso</span>}</td>
                       <td>
-                        <span className="badge badge-success" style={{ fontWeight: 700 }}>
-                          +{r.km_recorridos} km
-                        </span>
+                        {r.km_recorridos !== null ? (
+                          <span className="badge badge-success" style={{ fontWeight: 700 }}>
+                            +{r.km_recorridos} km
+                          </span>
+                        ) : (
+                          <span style={{color: 'var(--text-muted)'}}>-</span>
+                        )}
                       </td>
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         {timeStart} a {timeEnd}
@@ -2061,6 +2065,8 @@ function AdminReports({ token }) {
         <ReportDetailModal 
           report={selectedReport} 
           onClose={() => setSelectedReport(null)} 
+          onRefresh={fetchReports}
+          token={token}
         />
       )}
 
@@ -2071,8 +2077,27 @@ function AdminReports({ token }) {
 /* ==========================================
    COMPONENTE: MODAL DETALLE DE JORNADA
    ========================================== */
-function ReportDetailModal({ report, onClose }) {
+function ReportDetailModal({ report, onClose, onRefresh, token }) {
   const [activePhoto, setActivePhoto] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  
+  // Helpers para timezone local a input datetime-local
+  const formatForInput = (isoString) => {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const [editForm, setEditForm] = useState({
+    km_inicio: report.km_inicio || '',
+    km_fin: report.km_fin || '',
+    hora_inicio: formatForInput(report.hora_inicio),
+    hora_fin: formatForInput(report.hora_fin)
+  });
+
   const formatTime = (isoString) => {
     if (!isoString) return '--:--';
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2088,6 +2113,32 @@ function ReportDetailModal({ report, onClose }) {
     const mins = diffMins % 60;
     if (hrs > 0) return `${hrs}h ${mins}m`;
     return `${mins}m`;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch(`/api/admin/reportes/${report.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editForm)
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al actualizar');
+      }
+      setIsEditing(false);
+      if (onRefresh) onRefresh();
+      onClose(); // Cerrar modal para reflejar cambios frescos
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -2108,39 +2159,81 @@ function ReportDetailModal({ report, onClose }) {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fecha</div>
-            <div style={{ fontWeight: 600 }}>{new Date(report.hora_inicio).toLocaleDateString()}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Conductor</div>
-            <div style={{ fontWeight: 600 }}>{report.conductor}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Vehículo</div>
-            <div style={{ fontWeight: 600 }}>{report.matricula}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Horario</div>
-            <div style={{ fontWeight: 600 }}>{formatTime(report.hora_inicio)} - {formatTime(report.hora_fin)}</div>
-          </div>
+        {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem', fontSize: '0.9rem', textAlign: 'center' }}>{errorMsg}</div>}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          {!isEditing ? (
+            <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => setIsEditing(true)}>
+              <Edit size={14} /> Editar Jornada
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => setIsEditing(false)} disabled={saving}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={handleSave} disabled={saving}>
+                {saving ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          )}
         </div>
 
-        <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Km Inicio</div>
-            <div style={{ fontWeight: 600 }}>{report.km_inicio}</div>
+        {isEditing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="form-group">
+              <label className="form-label">Hora Inicio</label>
+              <input type="datetime-local" className="form-input" value={editForm.hora_inicio} onChange={e => setEditForm({...editForm, hora_inicio: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Hora Fin</label>
+              <input type="datetime-local" className="form-input" value={editForm.hora_fin} onChange={e => setEditForm({...editForm, hora_fin: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Km Inicio</label>
+              <input type="number" className="form-input" value={editForm.km_inicio} onChange={e => setEditForm({...editForm, km_inicio: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Km Fin</label>
+              <input type="number" className="form-input" value={editForm.km_fin} onChange={e => setEditForm({...editForm, km_fin: e.target.value})} />
+            </div>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Km Fin</div>
-            <div style={{ fontWeight: 600 }}>{report.km_fin || '-'}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total</div>
-            <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>+{report.km_recorridos} km</div>
-          </div>
-        </div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fecha</div>
+                <div style={{ fontWeight: 600 }}>{new Date(report.hora_inicio).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Conductor</div>
+                <div style={{ fontWeight: 600 }}>{report.conductor}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Vehículo</div>
+                <div style={{ fontWeight: 600 }}>{report.matricula}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Horario</div>
+                <div style={{ fontWeight: 600 }}>{formatTime(report.hora_inicio)} - {formatTime(report.hora_fin)}</div>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Km Inicio</div>
+                <div style={{ fontWeight: 600 }}>{report.km_inicio}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Km Fin</div>
+                <div style={{ fontWeight: 600 }}>{report.km_fin || '-'}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total</div>
+                <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>{report.km_recorridos !== null ? `+${report.km_recorridos} km` : '-'}</div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* FOTOS DE KILOMETRAJE */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
