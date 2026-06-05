@@ -1760,8 +1760,8 @@ function AdminVehicles({ token }) {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {historyData.map(r => {
-                      const timeStart = new Date(r.hora_inicio).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
-                      const timeEnd = r.hora_fin ? new Date(r.hora_fin).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' }) : '--:--';
+                      const timeStart = new Date(r.hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const timeEnd = r.hora_fin ? new Date(r.hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
                       return (
                         <div key={r.id} style={{ padding: '1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -1861,9 +1861,9 @@ function AdminReports({ token }) {
     csvContent += 'Fecha;Conductor;Vehículo;Km Inicio;Km Fin;Km Recorridos;Hora Inicio;Hora Fin\n';
 
     reportsData.detalles.forEach(r => {
-      const dateStr = new Date(r.hora_inicio).toLocaleDateString('es-ES', { timeZone: 'UTC' });
-      const timeStart = new Date(r.hora_inicio).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
-      const timeEnd = r.hora_fin ? new Date(r.hora_fin).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+      const dateStr = new Date(r.hora_inicio).toLocaleDateString();
+      const timeStart = new Date(r.hora_inicio).toLocaleTimeString();
+      const timeEnd = r.hora_fin ? new Date(r.hora_fin).toLocaleTimeString() : 'N/A';
       
       csvContent += `${dateStr};${r.conductor};${r.matricula};${r.km_inicio};${r.km_fin};${r.km_recorridos};${timeStart};${timeEnd}\n`;
     });
@@ -1994,10 +1994,10 @@ function AdminReports({ token }) {
                 </tr>
               ) : (
                 reportsData.detalles.map(r => {
-                  const dateStr = new Date(r.hora_inicio).toLocaleDateString('es-ES', { timeZone: 'UTC' });
-                  const timeStart = new Date(r.hora_inicio).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
+                  const dateStr = new Date(r.hora_inicio).toLocaleDateString();
+                  const timeStart = new Date(r.hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   const timeEnd = r.hora_fin 
-                    ? new Date(r.hora_fin).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' }) 
+                    ? new Date(r.hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
                     : '--:--';
                   
                   return (
@@ -2137,7 +2137,7 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
 
   const formatTime = (isoString) => {
     if (!isoString) return '--:--';
-    return new Date(isoString).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
+    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const calculateDuration = (start, end) => {
@@ -2238,7 +2238,7 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
               <div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Fecha</div>
-                <div style={{ fontWeight: 600 }}>{new Date(report.hora_inicio).toLocaleDateString('es-ES', { timeZone: 'UTC' })}</div>
+                <div style={{ fontWeight: 600 }}>{new Date(report.hora_inicio).toLocaleDateString()}</div>
               </div>
               <div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Conductor</div>
@@ -2618,9 +2618,9 @@ function AdminRepostajes({ token }) {
                 repostajesData.detalles.map(r => (
                   <tr key={r.id}>
                     <td>
-                      <strong>{new Date(r.fecha_hora).toLocaleDateString('es-ES', { timeZone: 'UTC' })}</strong> 
+                      <strong>{new Date(r.fecha_hora).toLocaleDateString()}</strong> 
                       <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
-                        {new Date(r.fecha_hora).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(r.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </td>
                     <td>{r.conductor}</td>
@@ -2818,9 +2818,9 @@ function AdminLimpiezas({ token }) {
                 limpiezasData.detalles.map(r => (
                   <tr key={r.id}>
                     <td>
-                      <strong>{new Date(r.fecha_hora).toLocaleDateString('es-ES', { timeZone: 'UTC' })}</strong> 
+                      <strong>{new Date(r.fecha_hora).toLocaleDateString()}</strong> 
                       <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
-                        {new Date(r.fecha_hora).toLocaleTimeString('es-ES', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(r.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </td>
                     <td>{r.conductor}</td>
