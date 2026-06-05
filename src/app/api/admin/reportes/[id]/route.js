@@ -8,7 +8,8 @@ export async function PUT(req, { params }) {
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
     if (auth.user.rol !== 'ADMINISTRADOR') return NextResponse.json({ error: 'Prohibido.' }, { status: 403 });
 
-    const { id } = params;
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
     const body = await req.json();
     const { km_inicio, km_fin, hora_inicio, hora_fin } = body;
 
