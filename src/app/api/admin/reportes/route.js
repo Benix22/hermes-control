@@ -31,7 +31,9 @@ export async function GET(req) {
             json_build_object(
                 'fecha_hora', r.fecha_hora,
                 'cantidad_euros', r.cantidad_euros,
-                'km_repostaje', r.km_repostaje
+                'km_repostaje', r.km_repostaje,
+                'adblue_litros', r.adblue_litros,
+                'adblue_euros', r.adblue_euros
             ) ORDER BY r.fecha_hora ASC
         ), '[]'::json)
         FROM repostajes r WHERE r.id_jornada = j.id

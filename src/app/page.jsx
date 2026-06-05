@@ -357,6 +357,8 @@ function ConductorDashboard({ token }) {
   const [showRefuelModal, setShowRefuelModal] = useState(false);
   const [refuelAmount, setRefuelAmount] = useState('');
   const [refuelKm, setRefuelKm] = useState('');
+  const [adblueLitros, setAdblueLitros] = useState('');
+  const [adblueEuros, setAdblueEuros] = useState('');
   const [refuelLoading, setRefuelLoading] = useState(false);
 
   // Modal limpieza
@@ -615,7 +617,9 @@ function ConductorDashboard({ token }) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ 
           cantidad_euros: parseFloat(refuelAmount),
-          km_repostaje: parseInt(refuelKm, 10)
+          km_repostaje: parseInt(refuelKm, 10),
+          adblue_litros: adblueLitros ? parseFloat(adblueLitros) : 0,
+          adblue_euros: adblueEuros ? parseFloat(adblueEuros) : 0
         })
       });
       const data = await res.json();
@@ -624,6 +628,8 @@ function ConductorDashboard({ token }) {
         setShowRefuelModal(false);
         setRefuelAmount('');
         setRefuelKm('');
+        setAdblueLitros('');
+        setAdblueEuros('');
       } else {
         setErrorMsg(data.error);
         setShowRefuelModal(false);
@@ -1004,6 +1010,37 @@ function ConductorDashboard({ token }) {
                   required
                 />
               </div>
+
+              <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem' }}>
+                <h4 style={{ fontSize: '0.9rem', marginBottom: '0.8rem', color: 'var(--text-secondary)' }}>AdBlue (Opcional)</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Litros</label>
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      min="0"
+                      className="form-input" 
+                      placeholder="Ej: 10.5"
+                      value={adblueLitros}
+                      onChange={(e) => setAdblueLitros(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Coste (€)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0"
+                      className="form-input" 
+                      placeholder="Ej: 15.00"
+                      value={adblueEuros}
+                      onChange={(e) => setAdblueEuros(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                 <button 
                   type="button" 
@@ -2299,20 +2336,32 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {report.repostajes.map((r, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }}></div>
-                  <span style={{ fontSize: '0.9rem' }}>Repostaje {idx + 1}</span>
+              <div key={idx} style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }}></div>
+                    <span style={{ fontSize: '0.9rem' }}>Repostaje {idx + 1}</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {formatTime(r.fecha_hora)}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {r.km_repostaje ? `${r.km_repostaje} km` : 'N/A'}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-success)' }}>
+                    {parseFloat(r.cantidad_euros).toFixed(2)} €
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  {formatTime(r.fecha_hora)}
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  {r.km_repostaje ? `${r.km_repostaje} km` : 'N/A'}
-                </div>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-success)' }}>
-                  {parseFloat(r.cantidad_euros).toFixed(2)} €
-                </div>
+                { (parseFloat(r.adblue_euros) > 0 || parseFloat(r.adblue_litros) > 0) && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', gap: '1rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      AdBlue: {r.adblue_litros > 0 ? `${parseFloat(r.adblue_litros).toFixed(1)} L` : '-'}
+                    </span>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-info)' }}>
+                      {r.adblue_euros > 0 ? `${parseFloat(r.adblue_euros).toFixed(2)} €` : '-'}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -2448,7 +2497,8 @@ function AdminRepostajes({ token }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* TARJETA DE RESUMEN */}
-      <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem', maxWidth: '400px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
         <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(16,185,129,0.1)', color: 'var(--color-success)' }}>
           <Fuel size={24} />
         </div>
@@ -2459,6 +2509,23 @@ function AdminRepostajes({ token }) {
           </div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
             {repostajesData.resumen.totalRepostajes} repostajes encontrados
+          </div>
+        </div>
+          </div>
+        </div>
+        
+        <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
+          <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'rgba(59,130,246,0.1)', color: 'var(--color-primary)' }}>
+            <Droplet size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Gastado en AdBlue</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>
+              {(repostajesData.resumen.totalAdblueEuros || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              {(repostajesData.resumen.totalAdblueLitros || 0).toFixed(1)} L de AdBlue
+            </div>
           </div>
         </div>
       </div>
@@ -2537,6 +2604,8 @@ function AdminRepostajes({ token }) {
                 <th>Vehículo</th>
                 <th>Kilómetros</th>
                 <th>Coste</th>
+                <th>AdBlue (L)</th>
+                <th>AdBlue (€)</th>
               </tr>
             </thead>
             <tbody>
@@ -2562,6 +2631,14 @@ function AdminRepostajes({ token }) {
                       <span className="badge badge-success" style={{ fontWeight: 700 }}>
                         {parseFloat(r.cantidad_euros).toFixed(2)} €
                       </span>
+                    </td>
+                    <td>{r.adblue_litros > 0 ? `${parseFloat(r.adblue_litros).toFixed(1)} L` : '-'}</td>
+                    <td>
+                      {r.adblue_euros > 0 ? (
+                        <span className="badge badge-info" style={{ fontWeight: 700 }}>
+                          {parseFloat(r.adblue_euros).toFixed(2)} €
+                        </span>
+                      ) : '-'}
                     </td>
                   </tr>
                 ))

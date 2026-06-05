@@ -16,6 +16,8 @@ export async function GET(req) {
       )
     `);
     await pool.query('ALTER TABLE repostajes ADD COLUMN IF NOT EXISTS km_repostaje INTEGER NOT NULL DEFAULT 0');
+    await pool.query('ALTER TABLE repostajes ADD COLUMN IF NOT EXISTS adblue_litros DECIMAL(10,2) DEFAULT 0');
+    await pool.query('ALTER TABLE repostajes ADD COLUMN IF NOT EXISTS adblue_euros DECIMAL(10,2) DEFAULT 0');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS limpiezas (
           id SERIAL PRIMARY KEY,

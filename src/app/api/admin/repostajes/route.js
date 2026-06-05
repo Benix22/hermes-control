@@ -19,6 +19,8 @@ export async function GET(req) {
         r.id, 
         r.cantidad_euros, 
         r.km_repostaje,
+        r.adblue_litros,
+        r.adblue_euros,
         r.fecha_hora, 
         j.matricula, 
         u.username AS conductor
@@ -50,9 +52,24 @@ export async function GET(req) {
     const result = await pool.query(sql, params);
     const rows = result.rows;
     let totalEuros = 0;
-    rows.forEach(row => totalEuros += parseFloat(row.cantidad_euros) || 0);
+    let totalAdblueEuros = 0;
+    let totalAdblueLitros = 0;
+    
+    rows.forEach(row => {
+      totalEuros += parseFloat(row.cantidad_euros) || 0;
+      totalAdblueEuros += parseFloat(row.adblue_euros) || 0;
+      totalAdblueLitros += parseFloat(row.adblue_litros) || 0;
+    });
 
-    return NextResponse.json({ resumen: { totalEuros, totalRepostajes: rows.length }, detalles: rows });
+    return NextResponse.json({ 
+      resumen: { 
+        totalEuros, 
+        totalAdblueEuros,
+        totalAdblueLitros,
+        totalRepostajes: rows.length 
+      }, 
+      detalles: rows 
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
