@@ -14,18 +14,20 @@ export async function PUT(req, { params }) {
     const { km_inicio, km_fin, hora_inicio, hora_fin } = body;
 
     // Verificar si existe la jornada
-    const current = await pool.query('SELECT estado, hora_fin FROM jornadas WHERE id = $1', [id]);
+    const current = await pool.query('SELECT estado, hora_fin, matricula FROM jornadas WHERE id = $1', [id]);
     if (current.rows.length === 0) {
       return NextResponse.json({ error: 'Jornada no encontrada' }, { status: 404 });
     }
 
     const currentState = current.rows[0].estado;
     const currentHoraFin = current.rows[0].hora_fin;
+    const matricula = current.rows[0].matricula;
 
-    // Si nos pasan una hora de fin y la jornada no estaba finalizada, la finalizamos
+    // Si nos pasan una hora de fin y la jornada no estaba finalizada, la finalizamos y liberamos el vehículo
     let newEstado = currentState;
     if (hora_fin && currentState !== 'FINALIZADA') {
       newEstado = 'FINALIZADA';
+      await pool.query('UPDATE vehiculos SET en_uso = false WHERE matricula = $1', [matricula]);
     }
 
     const sql = `
