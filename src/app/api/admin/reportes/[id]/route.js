@@ -135,7 +135,7 @@ export async function DELETE(req, { params }) {
       const { estado, matricula } = current.rows[0];
 
       // Borrar en cascada simulada (o manual si no hay ON DELETE CASCADE en la DB)
-      await client.query('DELETE FROM pausas WHERE id_jornada = $1', [id]);
+      await client.query('DELETE FROM pausas_jornada WHERE id_jornada = $1', [id]);
       await client.query('DELETE FROM repostajes WHERE id_jornada = $1', [id]);
       await client.query('DELETE FROM limpiezas WHERE id_jornada = $1', [id]);
       await client.query('DELETE FROM jornadas WHERE id = $1', [id]);
