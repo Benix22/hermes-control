@@ -2154,29 +2154,28 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
             <FileText size={20} style={{ color: 'var(--color-primary)' }} />
             Detalle de Jornada
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {!isEditing ? (
+              <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => setIsEditing(true)}>
+                <Edit size={14} /> Editar
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setIsEditing(false)} disabled={saving}>
+                  Cancelar
+                </button>
+                <button className="btn btn-success" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={handleSave} disabled={saving}>
+                  {saving ? '...' : 'Guardar'}
+                </button>
+              </div>
+            )}
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem', fontSize: '0.9rem', textAlign: 'center' }}>{errorMsg}</div>}
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          {!isEditing ? (
-            <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => setIsEditing(true)}>
-              <Edit size={14} /> Editar Jornada
-            </button>
-          ) : (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={() => setIsEditing(false)} disabled={saving}>
-                Cancelar
-              </button>
-              <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={handleSave} disabled={saving}>
-                {saving ? 'Guardando...' : 'Guardar Cambios'}
-              </button>
-            </div>
-          )}
-        </div>
 
         {isEditing ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
