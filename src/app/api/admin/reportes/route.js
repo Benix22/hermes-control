@@ -16,7 +16,7 @@ export async function GET(req) {
 
     let sql = `SELECT 
       j.id, j.id_conductor, u.username AS conductor, j.matricula, j.km_inicio, j.km_fin, 
-      (j.km_fin - j.km_inicio) AS km_recorridos, j.hora_inicio, j.hora_fin, j.estado, j.url_foto_km,
+      (j.km_fin - j.km_inicio) AS km_recorridos, j.hora_inicio, j.hora_fin, j.estado, j.url_foto_km, j.url_foto_fin_km,
       (
         SELECT COALESCE(json_agg(
             json_build_object(

@@ -1945,7 +1945,7 @@ function AdminReports({ token }) {
                 <th>Km Fin</th>
                 <th>Total Km</th>
                 <th>Hora Inicio/Fin</th>
-                <th>Foto</th>
+                <th>Fotos (Inicio / Fin)</th>
               </tr>
             </thead>
             <tbody>
@@ -1985,21 +1985,41 @@ function AdminReports({ token }) {
                         {timeStart} a {timeEnd}
                       </td>
                       <td>
-                        {r.url_foto_km ? (
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActivePhoto(r.url_foto_km);
-                            }}
-                          >
-                            <Eye size={12} />
-                            <span>Ver Foto</span>
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sin foto</span>
-                        )}
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {r.url_foto_km ? (
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePhoto(r.url_foto_km);
+                              }}
+                              title="Foto Inicio"
+                            >
+                              <Camera size={12} />
+                              <span>Inicio</span>
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sin foto inicio</span>
+                          )}
+
+                          {r.url_foto_fin_km ? (
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActivePhoto(r.url_foto_fin_km);
+                              }}
+                              title="Foto Fin"
+                            >
+                              <Camera size={12} />
+                              <span>Fin</span>
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sin foto fin</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -2052,6 +2072,7 @@ function AdminReports({ token }) {
    COMPONENTE: MODAL DETALLE DE JORNADA
    ========================================== */
 function ReportDetailModal({ report, onClose }) {
+  const [activePhoto, setActivePhoto] = useState('');
   const formatTime = (isoString) => {
     if (!isoString) return '--:--';
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2118,6 +2139,31 @@ function ReportDetailModal({ report, onClose }) {
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total</div>
             <div style={{ fontWeight: 700, color: 'var(--color-success)' }}>+{report.km_recorridos} km</div>
+          </div>
+        </div>
+
+        {/* FOTOS DE KILOMETRAJE */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Foto Inicio</div>
+            {report.url_foto_km ? (
+              <button className="btn btn-secondary" onClick={() => setActivePhoto(report.url_foto_km)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                <Camera size={14} /> Ver Foto
+              </button>
+            ) : (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sin foto</div>
+            )}
+          </div>
+          
+          <div style={{ background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Foto Fin</div>
+            {report.url_foto_fin_km ? (
+              <button className="btn btn-secondary" onClick={() => setActivePhoto(report.url_foto_fin_km)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                <Camera size={14} /> Ver Foto
+              </button>
+            ) : (
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sin foto</div>
+            )}
           </div>
         </div>
 
@@ -2213,6 +2259,33 @@ function ReportDetailModal({ report, onClose }) {
         </button>
 
       </div>
+
+      {/* MODAL PARA VER FOTO (DENTRO DEL DETALLE) */}
+      {activePhoto && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1100, padding: '1.5rem'
+        }} onClick={() => setActivePhoto('')}>
+          <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%' }} onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setActivePhoto('')}
+              style={{
+                position: 'absolute', top: '-15px', right: '-15px', background: 'var(--color-danger)', 
+                color: 'white', border: 'none', borderRadius: '50%', width: '30px', height: '30px', 
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1101
+              }}
+            >
+              <X size={16} />
+            </button>
+            <img 
+              src={activePhoto} 
+              alt="Cuentakilómetros" 
+              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', border: '2px solid var(--border-color)' }} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
