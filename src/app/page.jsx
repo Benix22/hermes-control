@@ -2511,7 +2511,6 @@ function AdminRepostajes({ token }) {
             {repostajesData.resumen.totalRepostajes} repostajes encontrados
           </div>
         </div>
-          </div>
         </div>
         
         <div className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem' }}>
