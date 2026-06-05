@@ -2132,8 +2132,48 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
     km_inicio: report.km_inicio || '',
     km_fin: report.km_fin || '',
     hora_inicio: formatForInput(report.hora_inicio),
-    hora_fin: formatForInput(report.hora_fin)
+    hora_fin: formatForInput(report.hora_fin),
+    repostajes: report.repostajes ? report.repostajes.map(r => ({ ...r })) : [],
+    limpiezas: report.limpiezas ? report.limpiezas.map(l => ({ ...l })) : []
   });
+
+  const handleAddRepostaje = () => {
+    setEditForm({
+      ...editForm,
+      repostajes: [...editForm.repostajes, { cantidad_euros: '', km_repostaje: '', adblue_litros: '', adblue_euros: '' }]
+    });
+  };
+
+  const handleRemoveRepostaje = (index) => {
+    const newArr = [...editForm.repostajes];
+    newArr.splice(index, 1);
+    setEditForm({ ...editForm, repostajes: newArr });
+  };
+
+  const handleRepostajeChange = (index, field, value) => {
+    const newArr = [...editForm.repostajes];
+    newArr[index][field] = value;
+    setEditForm({ ...editForm, repostajes: newArr });
+  };
+
+  const handleAddLimpieza = () => {
+    setEditForm({
+      ...editForm,
+      limpiezas: [...editForm.limpiezas, { cantidad_euros: '' }]
+    });
+  };
+
+  const handleRemoveLimpieza = (index) => {
+    const newArr = [...editForm.limpiezas];
+    newArr.splice(index, 1);
+    setEditForm({ ...editForm, limpiezas: newArr });
+  };
+
+  const handleLimpiezaChange = (index, field, value) => {
+    const newArr = [...editForm.limpiezas];
+    newArr[index][field] = value;
+    setEditForm({ ...editForm, limpiezas: newArr });
+  };
 
   const formatTime = (isoString) => {
     if (!isoString) return '--:--';
@@ -2337,41 +2377,77 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
           Registro de Repostajes
         </h4>
         
-        {(!report.repostajes || report.repostajes.length === 0) ? (
-          <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            No se registraron repostajes en esta jornada.
-          </div>
+        {!isEditing ? (
+          (!report.repostajes || report.repostajes.length === 0) ? (
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              No se registraron repostajes en esta jornada.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {report.repostajes.map((r, idx) => (
+                <div key={idx} style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }}></div>
+                      <span style={{ fontSize: '0.9rem' }}>Repostaje {idx + 1}</span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {formatTime(r.fecha_hora)}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {r.km_repostaje ? `${r.km_repostaje} km` : 'N/A'}
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-success)' }}>
+                      {parseFloat(r.cantidad_euros).toFixed(2)} €
+                    </div>
+                  </div>
+                  { (parseFloat(r.adblue_euros) > 0 || parseFloat(r.adblue_litros) > 0) && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', gap: '1rem' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        AdBlue: {r.adblue_litros > 0 ? `${parseFloat(r.adblue_litros).toFixed(1)} L` : '-'}
+                      </span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-info)' }}>
+                        {r.adblue_euros > 0 ? `${parseFloat(r.adblue_euros).toFixed(2)} €` : '-'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {report.repostajes.map((r, idx) => (
-              <div key={idx} style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }}></div>
-                    <span style={{ fontSize: '0.9rem' }}>Repostaje {idx + 1}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {editForm.repostajes.map((r, idx) => (
+              <div key={idx} style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', position: 'relative' }}>
+                <button type="button" onClick={() => handleRemoveRepostaje(idx)} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>
+                  <Trash2 size={16} />
+                </button>
+                <div style={{ fontSize: '0.9rem', marginBottom: '0.8rem', color: 'var(--text-secondary)' }}>Repostaje {idx + 1}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '0.8rem' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Combustible (€)</label>
+                    <input type="number" step="0.01" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem' }} value={r.cantidad_euros} onChange={e => handleRepostajeChange(idx, 'cantidad_euros', e.target.value)} />
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {formatTime(r.fecha_hora)}
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    {r.km_repostaje ? `${r.km_repostaje} km` : 'N/A'}
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-success)' }}>
-                    {parseFloat(r.cantidad_euros).toFixed(2)} €
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Km Vehículo</label>
+                    <input type="number" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem' }} value={r.km_repostaje || ''} onChange={e => handleRepostajeChange(idx, 'km_repostaje', e.target.value)} />
                   </div>
                 </div>
-                { (parseFloat(r.adblue_euros) > 0 || parseFloat(r.adblue_litros) > 0) && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      AdBlue: {r.adblue_litros > 0 ? `${parseFloat(r.adblue_litros).toFixed(1)} L` : '-'}
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-info)' }}>
-                      {r.adblue_euros > 0 ? `${parseFloat(r.adblue_euros).toFixed(2)} €` : '-'}
-                    </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>AdBlue (Litros)</label>
+                    <input type="number" step="0.1" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem' }} value={r.adblue_litros || ''} onChange={e => handleRepostajeChange(idx, 'adblue_litros', e.target.value)} />
                   </div>
-                )}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>AdBlue (€)</label>
+                    <input type="number" step="0.01" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem' }} value={r.adblue_euros || ''} onChange={e => handleRepostajeChange(idx, 'adblue_euros', e.target.value)} />
+                  </div>
+                </div>
               </div>
             ))}
+            <button className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.5rem', fontSize: '0.85rem' }} onClick={handleAddRepostaje}>
+              <Plus size={16} /> Añadir Repostaje
+            </button>
           </div>
         )}
 
@@ -2380,26 +2456,46 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
           Registro de Limpiezas
         </h4>
         
-        {(!report.limpiezas || report.limpiezas.length === 0) ? (
-          <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            No se registraron limpiezas en esta jornada.
-          </div>
+        {!isEditing ? (
+          (!report.limpiezas || report.limpiezas.length === 0) ? (
+            <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              No se registraron limpiezas en esta jornada.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {report.limpiezas.map((r, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-info)' }}></div>
+                    <span style={{ fontSize: '0.9rem' }}>Limpieza {idx + 1}</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {formatTime(r.fecha_hora)}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-info)' }}>
+                    {parseFloat(r.cantidad_euros).toFixed(2)} €
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {report.limpiezas.map((r, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-info)' }}></div>
-                  <span style={{ fontSize: '0.9rem' }}>Limpieza {idx + 1}</span>
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  {formatTime(r.fecha_hora)}
-                </div>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-info)' }}>
-                  {parseFloat(r.cantidad_euros).toFixed(2)} €
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {editForm.limpiezas.map((r, idx) => (
+              <div key={idx} style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', position: 'relative' }}>
+                <button type="button" onClick={() => handleRemoveLimpieza(idx)} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>
+                  <Trash2 size={16} />
+                </button>
+                <div style={{ fontSize: '0.9rem', marginBottom: '0.8rem', color: 'var(--text-secondary)' }}>Limpieza {idx + 1}</div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Coste (€)</label>
+                  <input type="number" step="0.01" className="form-input" style={{ padding: '0.4rem', fontSize: '0.85rem' }} value={r.cantidad_euros} onChange={e => handleLimpiezaChange(idx, 'cantidad_euros', e.target.value)} />
                 </div>
               </div>
             ))}
+            <button className="btn btn-secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.5rem', fontSize: '0.85rem' }} onClick={handleAddLimpieza}>
+              <Plus size={16} /> Añadir Limpieza
+            </button>
           </div>
         )}
 
