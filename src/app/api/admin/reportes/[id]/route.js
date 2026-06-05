@@ -112,3 +112,49 @@ export async function PUT(req, { params }) {
     return NextResponse.json({ error: 'Error del servidor.' }, { status: 500 });
   }
 }
+
+export async function DELETE(req, { params }) {
+  try {
+    const auth = verifyAuth(req);
+    if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    if (auth.user.rol !== 'ADMINISTRADOR') return NextResponse.json({ error: 'Prohibido.' }, { status: 403 });
+
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const current = await client.query('SELECT estado, matricula FROM jornadas WHERE id = $1 FOR UPDATE', [id]);
+      if (current.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ error: 'Jornada no encontrada' }, { status: 404 });
+      }
+
+      const { estado, matricula } = current.rows[0];
+
+      // Borrar en cascada simulada (o manual si no hay ON DELETE CASCADE en la DB)
+      await client.query('DELETE FROM pausas WHERE id_jornada = $1', [id]);
+      await client.query('DELETE FROM repostajes WHERE id_jornada = $1', [id]);
+      await client.query('DELETE FROM limpiezas WHERE id_jornada = $1', [id]);
+      await client.query('DELETE FROM jornadas WHERE id = $1', [id]);
+
+      // Si estaba activa o pausada, liberar el vehículo
+      if (estado === 'ACTIVA' || estado === 'PAUSADA') {
+        await client.query('UPDATE vehiculos SET en_uso = false WHERE matricula = $1', [matricula]);
+      }
+
+      await client.query('COMMIT');
+      return NextResponse.json({ success: true, message: 'Jornada eliminada completamente' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Error eliminando jornada:', err);
+    return NextResponse.json({ error: 'Error del servidor.' }, { status: 500 });
+  }
+}

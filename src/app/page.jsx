@@ -2226,6 +2226,32 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm("¿Estás completamente seguro de que deseas ELIMINAR esta jornada? Esto borrará también todos sus repostajes, pausas y limpiezas de forma irreversible.")) {
+      return;
+    }
+    setSaving(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch(`/api/admin/reportes/${report.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Error al eliminar');
+      }
+      if (onRefresh) onRefresh();
+      onClose();
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -2241,9 +2267,14 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {!isEditing ? (
-              <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => setIsEditing(true)}>
-                <Edit size={14} /> Editar
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => setIsEditing(true)}>
+                  <Edit size={14} /> Editar
+                </button>
+                <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.5)' }} onClick={handleDelete} disabled={saving}>
+                  <Trash2 size={14} /> Eliminar
+                </button>
+              </div>
             ) : (
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setIsEditing(false)} disabled={saving}>
