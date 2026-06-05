@@ -2156,13 +2156,21 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
     setSaving(true);
     setErrorMsg('');
     try {
+      const payload = { ...editForm };
+      if (payload.hora_inicio) {
+        payload.hora_inicio = new Date(payload.hora_inicio).toISOString();
+      }
+      if (payload.hora_fin) {
+        payload.hora_fin = new Date(payload.hora_fin).toISOString();
+      }
+
       const res = await fetch(`/api/admin/reportes/${report.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const data = await res.json();
