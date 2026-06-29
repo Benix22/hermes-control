@@ -23,6 +23,7 @@ CREATE TABLE vehiculos (
     marca_modelo VARCHAR(100) NOT NULL,
     km_iniciales INTEGER DEFAULT 0 NOT NULL,
     km_actuales INTEGER DEFAULT 0 NOT NULL,
+    km_perdidos INTEGER DEFAULT 0 NOT NULL,
     en_uso BOOLEAN DEFAULT FALSE NOT NULL,
     activo BOOLEAN DEFAULT TRUE NOT NULL
 );

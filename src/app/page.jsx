@@ -1572,6 +1572,7 @@ function AdminVehicles({ token }) {
               <th>Marca y Modelo</th>
               <th>Km Iniciales</th>
               <th>Km Actuales</th>
+              <th>Km Perdidos</th>
               <th>Total Recorrido</th>
               <th>Estado Flota</th>
               <th>Uso en Tiempo Real</th>
@@ -1591,6 +1592,11 @@ function AdminVehicles({ token }) {
                 <td>{v.marca_modelo}</td>
                 <td>{v.km_iniciales || 0} km</td>
                 <td>{v.km_actuales || 0} km</td>
+                <td>
+                  <span className="badge badge-warning" style={{ backgroundColor: 'var(--color-warning)', color: '#000' }}>
+                    {v.km_perdidos || 0} km
+                  </span>
+                </td>
                 <td><span className="badge badge-primary">{(v.km_actuales || 0) - (v.km_iniciales || 0)} km</span></td>
                 <td>
                   <span className={`badge ${v.activo ? 'badge-success' : 'badge-danger'}`}>

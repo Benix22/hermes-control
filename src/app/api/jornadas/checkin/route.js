@@ -21,14 +21,19 @@ export async function POST(req) {
         return NextResponse.json({ error: 'Ya tienes una jornada activa en curso.' }, { status: 400 });
       }
 
-      const vehicleCheck = await client.query('SELECT en_uso, activo FROM vehiculos WHERE matricula = $1 FOR UPDATE', [matricula]);
+      const vehicleCheck = await client.query('SELECT en_uso, activo, km_actuales FROM vehiculos WHERE matricula = $1 FOR UPDATE', [matricula]);
       if (vehicleCheck.rows.length === 0) { await client.query('ROLLBACK'); return NextResponse.json({ error: 'El vehículo no existe.' }, { status: 404 }); }
       
       const vehicle = vehicleCheck.rows[0];
       if (!vehicle.activo) { await client.query('ROLLBACK'); return NextResponse.json({ error: 'Este vehículo está dado de baja.' }, { status: 400 }); }
       if (vehicle.en_uso) { await client.query('ROLLBACK'); return NextResponse.json({ error: 'Vehículo ocupado.' }, { status: 400 }); }
 
-      await client.query('UPDATE vehiculos SET en_uso = TRUE WHERE matricula = $1', [matricula]);
+      let kmPerdidosExtra = 0;
+      if (kmInicioNum > vehicle.km_actuales) {
+        kmPerdidosExtra = kmInicioNum - vehicle.km_actuales;
+      }
+
+      await client.query('UPDATE vehiculos SET en_uso = TRUE, km_actuales = $2, km_perdidos = km_perdidos + $3 WHERE matricula = $1', [matricula, kmInicioNum, kmPerdidosExtra]);
       const insertShift = await client.query(
         `INSERT INTO jornadas (id_conductor, matricula, km_inicio, url_foto_km, estado, hora_inicio) 
          VALUES ($1, $2, $3, $4, 'ACTIVA', NOW()) RETURNING *`,
