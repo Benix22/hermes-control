@@ -1802,9 +1802,11 @@ function AdminVehicles({ token }) {
 function AdminReports({ token }) {
   const [reportsData, setReportsData] = useState({ resumen: { totalKilometros: 0, totalJornadas: 0 }, detalles: [] });
   const [conductores, setConductores] = useState([]);
+  const [vehiculos, setVehiculos] = useState([]);
   
   // Filtros
   const [selectedConductor, setSelectedConductor] = useState('todos');
+  const [selectedVehiculo, setSelectedVehiculo] = useState('todas');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   
@@ -1818,6 +1820,7 @@ function AdminReports({ token }) {
 
   useEffect(() => {
     loadActiveDrivers();
+    loadVehicles();
     handleFetchReport();
   }, []);
 
@@ -1835,12 +1838,22 @@ function AdminReports({ token }) {
     }
   };
 
+  const loadVehicles = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/vehiculos`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setVehiculos(await res.json());
+    } catch (err) {}
+  };
+
   const handleFetchReport = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
 
     try {
       let query = `conductorId=${selectedConductor}`;
+      if (selectedVehiculo && selectedVehiculo !== 'todas') query += `&matricula=${selectedVehiculo}`;
       if (fechaInicio) query += `&fechaInicio=${fechaInicio}`;
       if (fechaFin) query += `&fechaFin=${fechaFin}`;
 
@@ -1930,6 +1943,20 @@ function AdminReports({ token }) {
               <option value="todos">Todos</option>
               {conductores.map(c => (
                 <option key={c.id} value={c.id}>{c.username}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Vehículo</label>
+            <select 
+              className="form-input form-select"
+              value={selectedVehiculo}
+              onChange={(e) => setSelectedVehiculo(e.target.value)}
+            >
+              <option value="todas">Todos</option>
+              {vehiculos.map(v => (
+                <option key={v.matricula} value={v.matricula}>{v.matricula}</option>
               ))}
             </select>
           </div>
