@@ -2628,6 +2628,36 @@ function AdminRepostajes({ token }) {
     }
   };
 
+  const handleExportCSV = () => {
+    if (repostajesData.detalles.length === 0) return;
+
+    let csvContent = 'data:text/csv;charset=utf-8,\uFEFF';
+    csvContent += 'Fecha y Hora;Conductor;Vehículo;Kilómetros;Coste (€);AdBlue (L);AdBlue (€)\n';
+
+    repostajesData.detalles.forEach(r => {
+      const dateStr = new Date(r.fecha_hora).toLocaleDateString('es-ES');
+      const timeStr = new Date(r.fecha_hora).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+      const fechaHora = `${dateStr} ${timeStr}`;
+      const conductor = r.conductor || '';
+      const matricula = r.matricula || '';
+      const km = r.km_repostaje || '';
+      const coste = parseFloat(r.cantidad_euros || 0).toFixed(2).replace('.', ',');
+      const adblueL = parseFloat(r.adblue_litros || 0).toFixed(1).replace('.', ',');
+      const adblueE = parseFloat(r.adblue_euros || 0).toFixed(2).replace('.', ',');
+      
+      csvContent += `${fechaHora};${conductor};${matricula};${km};${coste};${adblueL};${adblueE}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const filename = `repostajes_${new Date().toISOString().slice(0,10)}.csv`;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
@@ -2726,7 +2756,17 @@ function AdminRepostajes({ token }) {
 
       {/* RESULTADOS */}
       <div className="glass-card">
-        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Repostajes</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Detalle de Repostajes</h3>
+          <button 
+            className="btn btn-secondary" 
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            onClick={handleExportCSV}
+            title="Exportar a CSV"
+          >
+            <Download size={16} /> Exportar Excel
+          </button>
+        </div>
         {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{errorMsg}</div>}
         
         <div className="table-container">
@@ -2848,6 +2888,33 @@ function AdminLimpiezas({ token }) {
     }
   };
 
+  const handleExportCSV = () => {
+    if (limpiezasData.detalles.length === 0) return;
+
+    let csvContent = 'data:text/csv;charset=utf-8,\uFEFF';
+    csvContent += 'Fecha y Hora;Conductor;Vehículo;Coste (€)\n';
+
+    limpiezasData.detalles.forEach(r => {
+      const dateStr = new Date(r.fecha_hora).toLocaleDateString('es-ES');
+      const timeStr = new Date(r.fecha_hora).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+      const fechaHora = `${dateStr} ${timeStr}`;
+      const conductor = r.conductor || '';
+      const matricula = r.matricula || '';
+      const coste = parseFloat(r.cantidad_euros || 0).toFixed(2).replace('.', ',');
+      
+      csvContent += `${fechaHora};${conductor};${matricula};${coste}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const filename = `limpiezas_${new Date().toISOString().slice(0,10)}.csv`;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
@@ -2929,7 +2996,17 @@ function AdminLimpiezas({ token }) {
 
       {/* RESULTADOS */}
       <div className="glass-card">
-        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Detalle de Limpiezas</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Detalle de Limpiezas</h3>
+          <button 
+            className="btn btn-secondary" 
+            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            onClick={handleExportCSV}
+            title="Exportar a CSV"
+          >
+            <Download size={16} /> Exportar Excel
+          </button>
+        </div>
         {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{errorMsg}</div>}
         
         <div className="table-container">
