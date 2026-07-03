@@ -28,6 +28,11 @@ export async function POST(req) {
       if (!vehicle.activo) { await client.query('ROLLBACK'); return NextResponse.json({ error: 'Este vehículo está dado de baja.' }, { status: 400 }); }
       if (vehicle.en_uso) { await client.query('ROLLBACK'); return NextResponse.json({ error: 'Vehículo ocupado.' }, { status: 400 }); }
 
+      if (kmInicioNum < vehicle.km_actuales) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ error: `Los km de inicio (${kmInicioNum}) no pueden ser menores a los actuales del vehículo (${vehicle.km_actuales}).` }, { status: 400 });
+      }
+
       let kmPerdidosExtra = 0;
       if (kmInicioNum > vehicle.km_actuales) {
         kmPerdidosExtra = kmInicioNum - vehicle.km_actuales;
