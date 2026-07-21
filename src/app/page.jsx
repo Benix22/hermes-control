@@ -2,6 +2,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
+
+function Pagination({ currentPage, totalItems, pageSize, onPageChange }) {
+  const totalPages = Math.ceil(totalItems / pageSize);
+  if (totalPages <= 1) return null;
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+      <button 
+        className="btn btn-secondary" 
+        style={{ padding: '0.4rem 0.8rem' }}
+        disabled={currentPage === 1}
+        onClick={() => onPageChange(currentPage - 1)}
+      >
+        Anterior
+      </button>
+      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        Página {currentPage} de {totalPages}
+      </span>
+      <button 
+        className="btn btn-secondary" 
+        style={{ padding: '0.4rem 0.8rem' }}
+        disabled={currentPage === totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+      >
+        Siguiente
+      </button>
+    </div>
+  );
+}
+
 function Portal({ children }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -376,6 +406,8 @@ function ConductorDashboard({ token }) {
   const [jornadaActiva, setJornadaActiva] = useState(null);
   const [loading, setLoading] = useState(true);
   const [vehiculos, setVehiculos] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => { setCurrentPage(1); }, [vehiculos]);
   
   // Datos del formulario de Check-in
   const [selectedMatricula, setSelectedMatricula] = useState('');
@@ -808,7 +840,7 @@ function ConductorDashboard({ token }) {
                 required
               >
                 <option value="">Selecciona una matrícula...</option>
-                {vehiculos.map(v => (
+                {vehiculos.slice((currentPage - 1) * 50, currentPage * 50).map(v => (
                   <option key={v.matricula} value={v.matricula}>
                     {v.matricula} - {v.marca_modelo}
                   </option>
@@ -1257,6 +1289,8 @@ function AdminDashboard({ token }) {
    ========================================== */
 function AdminDrivers({ token }) {
   const [conductores, setConductores] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => { setCurrentPage(1); }, [conductores]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -1378,7 +1412,7 @@ function AdminDrivers({ token }) {
             </tr>
           </thead>
           <tbody>
-            {conductores.map(c => (
+            {conductores.slice((currentPage - 1) * 50, currentPage * 50).map(c => (
               <tr key={c.id}>
                 <td>{c.id}</td>
                 <td><strong>{c.username}</strong></td>
@@ -1846,6 +1880,8 @@ function AdminVehicles({ token }) {
    ========================================== */
 function AdminReports({ token }) {
   const [reportsData, setReportsData] = useState({ resumen: { totalKilometros: 0, totalJornadas: 0 }, detalles: [] });
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => { setCurrentPage(1); }, [reportsData]);
   const [conductores, setConductores] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   
@@ -2071,7 +2107,7 @@ function AdminReports({ token }) {
                   </td>
                 </tr>
               ) : (
-                reportsData.detalles.map(r => {
+                reportsData.detalles.slice((currentPage - 1) * 50, currentPage * 50).map(r => {
                   const dateStr = new Date(r.hora_inicio).toLocaleDateString();
                   const timeStart = new Date(r.hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   const timeEnd = r.hora_fin 
