@@ -1,5 +1,13 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+
+function Portal({ children }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
 import { 
   Car, 
   User, 
@@ -197,7 +205,8 @@ export default function App() {
 
       {/* MODAL CAMBIAR CONTRASEÑA */}
       {showPasswordModal && (
-        <div className="modal-overlay animate-fade-in" onClick={() => !passwordLoading && setShowPasswordModal(false)}>
+        <Portal>
+<div className="modal-overlay animate-fade-in" onClick={() => !passwordLoading && setShowPasswordModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '380px' }}>
             <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Key size={20} /> Cambiar Contraseña
@@ -233,6 +242,7 @@ export default function App() {
             </form>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );
@@ -997,7 +1007,8 @@ function ConductorDashboard({ token }) {
 
       {/* MODAL REPOSTAJE */}
       {showRefuelModal && (
-        <div className="modal-overlay animate-fade-in" onClick={() => !refuelLoading && setShowRefuelModal(false)}>
+        <Portal>
+<div className="modal-overlay animate-fade-in" onClick={() => !refuelLoading && setShowRefuelModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px' }}>
             <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Fuel size={20} /> Registrar Repostaje
@@ -1082,11 +1093,13 @@ function ConductorDashboard({ token }) {
             </form>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* MODAL LIMPIEZA */}
       {showLimpiezaModal && (
-        <div className="modal-overlay animate-fade-in" onClick={() => !limpiezaLoading && setShowLimpiezaModal(false)}>
+        <Portal>
+<div className="modal-overlay animate-fade-in" onClick={() => !limpiezaLoading && setShowLimpiezaModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px' }}>
             <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Droplet size={20} style={{ color: 'var(--color-info)' }} /> Registrar Limpieza
@@ -1113,6 +1126,7 @@ function ConductorDashboard({ token }) {
             </form>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );
@@ -1391,7 +1405,8 @@ function AdminDrivers({ token }) {
 
       {/* MODAL FORMULARIO */}
       {showModal && (
-        <div style={{
+        <Portal>
+<div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1000, padding: '1rem'
@@ -1453,6 +1468,7 @@ function AdminDrivers({ token }) {
             </form>
           </div>
         </div>
+        </Portal>
       )}
     </>
   );
@@ -1647,7 +1663,8 @@ function AdminVehicles({ token }) {
 
       {/* MODAL */}
       {showModal && (
-        <div style={{
+        <Portal>
+<div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1000, padding: '1rem'
@@ -1748,11 +1765,13 @@ function AdminVehicles({ token }) {
             </form>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* MODAL HISTORIAL VEHÍCULO */}
       {historyVehicle && (
-        <div style={{
+        <Portal>
+<div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1000, padding: '1rem'
@@ -1816,6 +1835,7 @@ function AdminVehicles({ token }) {
             )}
           </div>
         </div>
+        </Portal>
       )}
     </>
   );
@@ -2131,7 +2151,8 @@ function AdminReports({ token }) {
 
       {/* MODAL PARA VER FOTO */}
       {activePhoto && (
-        <div style={{
+        <Portal>
+<div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1000, padding: '1.5rem'
@@ -2153,16 +2174,19 @@ function AdminReports({ token }) {
             />
           </div>
         </div>
+        </Portal>
       )}
 
       {/* MODAL DETALLE DE JORNADA */}
       {selectedReport && (
-        <ReportDetailModal 
+        <Portal>
+<ReportDetailModal 
           report={selectedReport} 
           onClose={() => setSelectedReport(null)} 
           onRefresh={handleFetchReport}
           token={token}
         />
+        </Portal>
       )}
 
     </div>
@@ -2596,7 +2620,8 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
 
       {/* MODAL PARA VER FOTO (DENTRO DEL DETALLE) */}
       {activePhoto && (
-        <div style={{
+        <Portal>
+<div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1100, padding: '1.5rem'
@@ -2619,6 +2644,7 @@ function ReportDetailModal({ report, onClose, onRefresh, token }) {
             />
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );
