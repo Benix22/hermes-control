@@ -50,6 +50,21 @@ export default function App() {
 
   // Sincronizar token en axios/fetch y cargar usuario
   useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const res = await originalFetch(...args);
+      if (res.status === 401 || res.status === 403) {
+        if (typeof args[0] === 'string' && !args[0].includes('/auth/login')) {
+          setToken('');
+          setUser(null);
+          setView('login');
+          setIsAdminSimulatingDriver(false);
+          setErrorMsg('Tu sesión ha caducado por inactividad. Por favor, vuelve a iniciar sesión.');
+        }
+      }
+      return res;
+    };
+
     if (token) {
       localStorage.setItem('token', token);
       fetchUserProfile();
@@ -58,6 +73,10 @@ export default function App() {
       setUser(null);
       setView('login');
     }
+
+    return () => {
+      window.fetch = originalFetch;
+    };
   }, [token]);
 
   const fetchUserProfile = async () => {
@@ -1322,8 +1341,9 @@ function AdminDrivers({ token }) {
   };
 
   return (
-    <div className="glass-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <>
+      <div className="glass-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h3>Gestión de Conductores</h3>
         <button className="btn btn-primary" onClick={handleOpenAdd}>
           <Plus size={16} />
@@ -1365,6 +1385,8 @@ function AdminDrivers({ token }) {
             ))}
           </tbody>
         </table>
+      </div>
+
       </div>
 
       {/* MODAL FORMULARIO */}
@@ -1432,7 +1454,7 @@ function AdminDrivers({ token }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -1553,8 +1575,9 @@ function AdminVehicles({ token }) {
   }, [historyVehicle, historyDate]);
 
   return (
-    <div className="glass-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <>
+      <div className="glass-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h3>Gestión de Flota de Vehículos</h3>
         <button className="btn btn-primary" onClick={handleOpenAdd}>
           <Plus size={16} />
@@ -1618,6 +1641,8 @@ function AdminVehicles({ token }) {
             ))}
           </tbody>
         </table>
+      </div>
+
       </div>
 
       {/* MODAL */}
@@ -1792,7 +1817,7 @@ function AdminVehicles({ token }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
