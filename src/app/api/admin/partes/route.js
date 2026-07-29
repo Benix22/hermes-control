@@ -8,6 +8,8 @@ export async function GET(req) {
   if (auth.user.rol !== 'ADMINISTRADOR') return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
   try {
+    await pool.query(`UPDATE partes_trabajo SET estado = 'CADUCADO' WHERE estado = 'PENDIENTE' AND fecha_hora_recogida < NOW()`);
+
     const result = await pool.query(`
       SELECT p.*, u.username as conductor_nombre
       FROM partes_trabajo p

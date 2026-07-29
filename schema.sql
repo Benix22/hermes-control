@@ -130,7 +130,7 @@ CREATE TABLE partes_trabajo (
     nombre_pasajero VARCHAR(150) NOT NULL,
     direccion_recogida TEXT NOT NULL,
     direccion_destino TEXT NOT NULL,
-    estado VARCHAR(20) DEFAULT 'PENDIENTE' NOT NULL CHECK (estado IN ('PENDIENTE', 'EN_CURSO', 'COMPLETADO', 'CANCELADO')),
+    estado VARCHAR(20) DEFAULT 'PENDIENTE' NOT NULL CHECK (estado IN ('PENDIENTE', 'EN_CURSO', 'COMPLETADO', 'CANCELADO', 'CADUCADO')),
     motivo_cancelacion TEXT,
     fecha_hora_fin_estimada TIMESTAMP WITH TIME ZONE,
     creado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
@@ -185,14 +185,22 @@ CREATE INDEX idx_jornadas_matricula ON jornadas(matricula);
 CREATE INDEX idx_jornadas_fechas ON jornadas(hora_inicio, hora_fin);
 CREATE INDEX idx_pausas_jornada ON pausas_jornada(id_jornada);
 
--- 8. Tabla: historial_partes (Auditoría de cambios en los partes de trabajo)
+-- 8. Tabla: historial_partes (Auditoría de cambios en partes_trabajo)
 CREATE TABLE historial_partes (
     id SERIAL PRIMARY KEY,
     id_parte INTEGER NOT NULL REFERENCES partes_trabajo(id) ON DELETE CASCADE,
-    id_usuario INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-    accion VARCHAR(50) NOT NULL,
-    detalles TEXT,
-    creado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+    id_usuario INTEGER REFERENCES usuarios(id) ON DELETE SET NULL, -- Quién hizo el cambio
+    accion VARCHAR(50) NOT NULL, -- Ej: 'CREADO', 'ASIGNADO', 'ESTADO_CAMBIADO', 'MODIFICADO'
+    detalles TEXT, -- JSON o texto con detalles del cambio (ej: "Estado cambiado de PENDIENTE a ACEPTADO")
+    creado_en TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 9. Tabla: configuracion (Ajustes de la aplicación)
+CREATE TABLE configuracion (
+    clave VARCHAR(50) PRIMARY KEY,
+    valor TEXT NOT NULL
+);
+
+INSERT INTO configuracion (clave, valor) VALUES ('direccion_base', 'Málaga centro') ON CONFLICT DO NOTHING;
 
 CREATE INDEX idx_historial_parte ON historial_partes(id_parte);

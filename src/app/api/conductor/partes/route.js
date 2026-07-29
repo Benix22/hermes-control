@@ -10,6 +10,8 @@ export async function GET(req) {
     // Get partes assigned to this driver that are pending or in progress for today
     // We will just filter by PENDIENTE for now (EN_CURSO means they accepted it and started).
     // Actually, maybe we only want to show PENDIENTE, but let's show both.
+    await pool.query(`UPDATE partes_trabajo SET estado = 'CADUCADO' WHERE estado = 'PENDIENTE' AND fecha_hora_recogida < NOW()`);
+
     const result = await pool.query(`
       SELECT *
       FROM partes_trabajo
