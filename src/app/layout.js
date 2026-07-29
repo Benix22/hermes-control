@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Javify Control",
-  description: "Sistema unificado para Javify",
+  title: "Hermes Control",
+  description: "Sistema unificado para Hermes Control",
 };
 
 export default function RootLayout({ children }) {

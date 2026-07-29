@@ -51,6 +51,7 @@ import {
   Download, 
   Plus, 
   Edit, 
+  Edit2,
   Trash2, 
   Camera, 
   Eye, 
@@ -63,10 +64,15 @@ import {
   History,
   Fuel,
   Droplet,
-  Key
+  Key,
+  Map
 } from 'lucide-react';
 
 const API_URL = '/api';
+
+const getGoogleMapsLink = (origen, destino) => {
+  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
+};
 
 export default function App() {
   const [token, setToken] = useState(() => {
@@ -182,7 +188,7 @@ export default function App() {
         <div className="header-container">
           <div className="app-logo">
             <Car size={24} style={{ color: 'var(--color-primary-hover)' }} />
-            <span>Javify Control</span>
+            <span>Hermes Control</span>
           </div>
           
           <div className="user-info-section">
@@ -311,7 +317,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg('No se pudo conectar con la API de Javify.');
+      setErrorMsg('No se pudo conectar con la API de Hermes Control.');
     } finally {
       setLoading(false);
     }
@@ -331,7 +337,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
           }}>
             <Car size={36} />
           </div>
-          <h2>Javify Control</h2>
+          <h2>Hermes Control</h2>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
             Control de kilometraje y jornadas de flota
           </p>
@@ -406,6 +412,8 @@ function ConductorDashboard({ token }) {
   const [jornadaActiva, setJornadaActiva] = useState(null);
   const [loading, setLoading] = useState(true);
   const [vehiculos, setVehiculos] = useState([]);
+  const [partesPendientes, setPartesPendientes] = useState([]);
+  const [selectedParteId, setSelectedParteId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => { setCurrentPage(1); }, [vehiculos]);
   
@@ -438,7 +446,48 @@ function ConductorDashboard({ token }) {
 
   useEffect(() => {
     loadActiveShift();
+    loadPartes();
   }, []);
+
+  const loadPartes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/conductor/partes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPartesPendientes(data);
+      }
+    } catch (err) {
+      console.error('Error cargando partes', err);
+    }
+  };
+
+  const handleAceptarParte = (id) => {
+    setSelectedParteId(id);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  };
+
+  const handleCancelarParte = async (id) => {
+    const motivo = prompt('Por favor, indica el motivo de la cancelación:');
+    if (motivo === null) return; // User cancelled prompt
+    
+    try {
+      const res = await fetch(`${API_URL}/conductor/partes/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ estado: 'CANCELADO', motivo_cancelacion: motivo })
+      });
+      if (res.ok) {
+        loadPartes();
+      }
+    } catch (err) {
+      console.error('Error cancelando parte', err);
+    }
+  };
 
   const loadActiveShift = async () => {
     setLoading(true);
@@ -602,7 +651,8 @@ function ConductorDashboard({ token }) {
         body: JSON.stringify({
           matricula: selectedMatricula,
           km_inicio: parseInt(kmInicio, 10),
-          url_foto_km: fotoBase64
+          url_foto_km: fotoBase64,
+          id_parte: selectedParteId
         })
       });
       const data = await res.json();
@@ -612,8 +662,9 @@ function ConductorDashboard({ token }) {
         setSelectedMatricula('');
         setKmInicio('');
         setFotoBase64('');
-        // Recargar jornada activa
+        setSelectedParteId(null);
         loadActiveShift();
+        loadPartes();
       } else {
         setErrorMsg(data.error || 'Error al iniciar la jornada.');
       }
@@ -768,6 +819,7 @@ function ConductorDashboard({ token }) {
         setKmFin('');
         setFotoFinBase64('');
         loadVehicles();
+        loadPartes();
       } else {
         setErrorMsg(data.error || 'Error al finalizar jornada.');
       }
@@ -821,14 +873,76 @@ function ConductorDashboard({ token }) {
       )}
 
       {!jornadaActiva ? (
-        /* ==========================================
+        <>
+          {partesPendientes.length > 0 && (
+            <div className="glass-card animate-fade-in" style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <FileText size={20} style={{ color: 'var(--color-primary)' }} />
+                <h2 style={{ fontSize: '1.25rem' }}>Tus Partes Asignados</h2>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {partesPendientes.map(p => (
+                  <div key={p.id} style={{ 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: 'var(--radius-md)', 
+                    padding: '1rem',
+                    background: selectedParteId === p.id ? 'rgba(var(--color-primary-rgb), 0.1)' : 'transparent'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span className="badge badge-warning">{p.estado}</span>
+                      <strong>{new Date(p.fecha_hora_recogida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      {p.nombre_pasajero}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      <strong>Recogida:</strong> {p.direccion_recogida}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                      <strong>Destino:</strong> {p.direccion_destino}
+                    </div>
+                    
+                    <div style={{ marginBottom: '1rem' }}>
+                      <a href={getGoogleMapsLink(p.direccion_recogida, p.direccion_destino)} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.5rem 1rem', textDecoration: 'none', width: '100%', justifyContent: 'center' }}>
+                        <Map size={18} style={{ marginRight: '0.5rem' }} /> Ver Ruta en Google Maps
+                      </a>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => handleAceptarParte(p.id)}
+                        className={`btn ${selectedParteId === p.id ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ flex: 1 }}
+                      >
+                        {selectedParteId === p.id ? 'Seleccionado ▼' : 'Aceptar Parte'}
+                      </button>
+                      <button 
+                        onClick={() => handleCancelarParte(p.id)}
+                        className="btn btn-secondary"
+                        style={{ padding: '0.5rem', color: 'var(--color-danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                        title="Cancelar Parte"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        {/* ==========================================
            FORMULARIO DE CHECK-IN (COMIENZO DE JORNADA)
-           ========================================== */
-        <div className="glass-card animate-fade-in">
+           ========================================== */}
+        <div className="glass-card animate-fade-in" style={{ border: selectedParteId ? '2px solid var(--color-primary)' : '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
             <Play size={20} style={{ color: 'var(--color-success)' }} />
-            <h2 style={{ fontSize: '1.25rem' }}>Comenzar Jornada</h2>
+            <h2 style={{ fontSize: '1.25rem' }}>
+              {selectedParteId ? 'Comenzar Parte de Trabajo' : 'Comenzar Jornada Libre'}
+            </h2>
           </div>
+
 
           <form onSubmit={handleCheckIn}>
             <div className="form-group">
@@ -913,6 +1027,7 @@ function ConductorDashboard({ token }) {
             </button>
           </form>
         </div>
+        </>
       ) : (
         /* ==========================================
            PANEL DE ESTADO (JORNADA EN CURSO)
@@ -1223,7 +1338,7 @@ function ShiftTimer({ startTimeStr, estado, pausas }) {
    VISTA DE ADMINISTRADOR (ESCRITORIO)
    ========================================================================== */
 function AdminDashboard({ token }) {
-  const [activeTab, setActiveTab] = useState('reportes'); // reportes, conductores, vehiculos
+  const [activeTab, setActiveTab] = useState('reportes'); // reportes, conductores, vehiculos, partes
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
@@ -1269,6 +1384,14 @@ function AdminDashboard({ token }) {
             <Droplet size={18} />
             <span>Limpiezas</span>
           </button>
+          
+          <button 
+            className={`btn ${activeTab === 'partes' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('partes')}
+          >
+            <FileText size={18} />
+            <span>Partes</span>
+          </button>
         </div>
       </div>
 
@@ -1279,6 +1402,7 @@ function AdminDashboard({ token }) {
         {activeTab === 'reportes' && <AdminReports token={token} />}
         {activeTab === 'repostajes' && <AdminRepostajes token={token} />}
         {activeTab === 'limpiezas' && <AdminLimpiezas token={token} />}
+        {activeTab === 'partes' && <AdminPartes token={token} />}
       </div>
     </div>
   );
@@ -3169,6 +3293,564 @@ function AdminLimpiezas({ token }) {
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ==========================================
+   ADMIN - CRUD PARTES DE TRABAJO
+   ========================================== */
+function AdminPartes({ token }) {
+  const [partes, setPartes] = useState([]);
+  const [conductores, setConductores] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [suggestedDrivers, setSuggestedDrivers] = useState(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [historyParteId, setHistoryParteId] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    id_conductor: '',
+    fecha_hora_recogida: '',
+    nombre_pasajero: '',
+    direccion_recogida: '',
+    direccion_destino: ''
+  });
+
+  const fetchPartes = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch(API_URL + '/admin/partes', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al obtener los partes');
+      setPartes(data);
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchConductores = async () => {
+    try {
+      const res = await fetch(API_URL + '/admin/conductores', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setConductores(data);
+      }
+    } catch (err) {
+      console.error('Error fetching drivers', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPartes();
+    fetchConductores();
+  }, []);
+
+  const handleRowClick = async (parte) => {
+    if (parte.estado === 'PENDIENTE' || parte.estado === 'CANCELADO') return;
+    
+    try {
+      const res = await fetch(`${API_URL}/admin/reportes?id_parte=${parte.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.detalles && data.detalles.length > 0) {
+          setSelectedReport(data.detalles[0]);
+        } else {
+          alert('Aún no hay datos de jornada para este parte (el conductor no ha iniciado la sesión o hubo un error).');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching report', err);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      const payload = {
+        ...formData,
+        fecha_hora_recogida: new Date(formData.fecha_hora_recogida).toISOString()
+      };
+      
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `${API_URL}/admin/partes/${editingId}` : `${API_URL}/admin/partes`;
+      
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar el parte');
+      
+      setShowModal(false);
+      setEditingId(null);
+      setFormData({
+        id_conductor: '',
+        fecha_hora_recogida: '',
+        nombre_pasajero: '',
+        direccion_recogida: '',
+        direccion_destino: ''
+      });
+      fetchPartes();
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (parte, e) => {
+    e.stopPropagation();
+    setSuggestedDrivers(null);
+    
+    // Format date for datetime-local input
+    const d = new Date(parte.fecha_hora_recogida);
+    const pad = (n) => n.toString().padStart(2, '0');
+    const formattedDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    
+    setFormData({
+      id_conductor: parte.id_conductor,
+      fecha_hora_recogida: formattedDate,
+      nombre_pasajero: parte.nombre_pasajero,
+      direccion_recogida: parte.direccion_recogida,
+      direccion_destino: parte.direccion_destino
+    });
+    setEditingId(parte.id);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id, e) => {
+    e.stopPropagation();
+    if (!confirm('¿Estás seguro de que deseas borrar este parte permanentemente?')) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/partes/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al eliminar el parte');
+      
+      fetchPartes();
+    } catch (err) {
+      setErrorMsg(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleAdminCancelar = async (id, e) => {
+    e.stopPropagation();
+    const motivo = prompt('Por favor, indica el motivo de la cancelación:');
+    if (motivo === null) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/partes/${id}/cancelar`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token 
+        },
+        body: JSON.stringify({ motivo_cancelacion: motivo })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al cancelar el parte');
+      
+      fetchPartes();
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenHistory = async (id, e) => {
+    e.stopPropagation();
+    setHistoryParteId(id);
+    setShowHistoryModal(true);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/partes/${id}/historial`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setHistoryData(data);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      setHistoryData([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleSugerirConductores = async () => {
+    if (!formData.direccion_recogida || !formData.fecha_hora_recogida || !formData.direccion_destino) {
+      alert('Para sugerir conductores, primero debes rellenar la Fecha/Hora, Origen y Destino.');
+      return;
+    }
+    setIsSuggesting(true);
+    setSuggestedDrivers(null);
+    try {
+      const res = await fetch(`${API_URL}/admin/partes/sugerencias`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          origen: formData.direccion_recogida,
+          destino: formData.direccion_destino,
+          fecha_hora: formData.fecha_hora_recogida
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuggestedDrivers(data);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error al obtener sugerencias de Google Maps: ' + err.message);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleOpenNewModal = () => {
+    setEditingId(null);
+    setSuggestedDrivers(null);
+    setFormData({
+      id_conductor: '',
+      fecha_hora_recogida: '',
+      nombre_pasajero: '',
+      direccion_recogida: '',
+      direccion_destino: ''
+    });
+    setShowModal(true);
+  };
+
+  return (
+    <div className="glass-card animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Gestión de Partes de Trabajo</h3>
+        <button className="btn btn-primary" onClick={handleOpenNewModal}>
+          <Plus size={18} style={{ marginRight: '0.5rem' }} /> Nuevo Parte
+        </button>
+      </div>
+
+      {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{errorMsg}</div>}
+
+      <div className="table-container">
+        {loading && partes.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando...</div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Fecha/Hora Recogida</th>
+                <th>Conductor</th>
+                <th>Pasajero</th>
+                <th>Origen / Destino</th>
+                <th>Estado</th>
+                <th style={{ textAlign: 'right' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partes.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    No hay partes registrados.
+                  </td>
+                </tr>
+              ) : (
+                partes.map(p => (
+                  <tr 
+                    key={p.id} 
+                    onClick={() => handleRowClick(p)} 
+                    style={{ cursor: (p.estado === 'EN_CURSO' || p.estado === 'COMPLETADO') ? 'pointer' : 'default' }}
+                    className={(p.estado === 'EN_CURSO' || p.estado === 'COMPLETADO') ? 'hover-row' : ''}
+                    title={(p.estado === 'EN_CURSO' || p.estado === 'COMPLETADO') ? 'Clic para ver detalles de la jornada' : ''}
+                  >
+                    <td>
+                      <strong>{new Date(p.fecha_hora_recogida).toLocaleDateString()}</strong> 
+                      <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem', fontSize: '0.85rem' }}>
+                        {new Date(p.fecha_hora_recogida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td>{p.conductor_nombre}</td>
+                    <td>{p.nombre_pasajero}</td>
+                    <td>
+                      <div style={{ fontSize: '0.85rem' }}><strong>Origen:</strong> {p.direccion_recogida}</div>
+                      <div style={{ fontSize: '0.85rem' }}><strong>Destino:</strong> {p.direccion_destino}</div>
+                      <a href={getGoogleMapsLink(p.direccion_recogida, p.direccion_destino)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.8rem', color: 'var(--color-primary)', textDecoration: 'none', marginTop: '0.25rem' }}>
+                        <Map size={14} style={{ marginRight: '0.25rem' }} /> Abrir en Google Maps
+                      </a>
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        p.estado === 'COMPLETADO' ? 'badge-success' : 
+                        p.estado === 'CANCELADO' ? 'badge-danger' : 
+                        p.estado === 'EN_CURSO' ? 'badge-warning' : 'badge-info'
+                      }`}>
+                        {p.estado}
+                      </span>
+                      {p.estado === 'CANCELADO' && p.motivo_cancelacion && (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-danger)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                          Motivo: {p.motivo_cancelacion}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button 
+                        className="btn btn-secondary" 
+                        style={{ padding: '0.4rem', marginRight: '0.5rem' }} 
+                        onClick={(e) => handleOpenHistory(p.id, e)}
+                        title="Ver Historial"
+                      >
+                        <History size={16} />
+                      </button>
+                      <button 
+                        className="btn btn-secondary" 
+                        style={{ padding: '0.4rem', marginRight: '0.5rem' }} 
+                        onClick={(e) => handleEdit(p, e)}
+                        title="Editar"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      {p.estado !== 'CANCELADO' && p.estado !== 'COMPLETADO' && (
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.4rem', marginRight: '0.5rem', color: 'var(--color-warning)' }} 
+                          onClick={(e) => handleAdminCancelar(p.id, e)}
+                          title="Cancelar Parte"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                      <button 
+                        className="btn btn-secondary" 
+                        style={{ padding: '0.4rem', color: 'var(--color-danger)' }} 
+                        onClick={(e) => handleDelete(p.id, e)}
+                        title="Borrar"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showModal && (
+        <Portal>
+          <div className="modal-overlay">
+            <div className="modal-content glass-card animate-scale-in">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{editingId ? 'Editar Parte' : 'Crear Nuevo Parte'}</h3>
+                <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                <div className="form-group" style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Conductor *</span>
+                    <button type="button" className="btn btn-secondary" onClick={handleSugerirConductores} disabled={isSuggesting} style={{ padding: '0.25rem 0.5rem', fontSize: '0.85rem' }}>
+                      {isSuggesting ? 'Calculando...' : '💡 Sugerir (Usar Maps)'}
+                    </button>
+                  </label>
+                  
+                  {suggestedDrivers && (
+                    <div style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
+                      <div style={{ marginBottom: '0.5rem', color: 'var(--color-primary)', fontWeight: 'bold' }}>Sugerencias por proximidad:</div>
+                      {suggestedDrivers.map((s, idx) => {
+                        const isBest = idx === 0 && !s.conflicto;
+                        const borderColor = s.conflicto ? 'var(--color-error)' : (isBest ? 'var(--color-success)' : 'var(--border-color)');
+                        const textColor = s.conflicto ? 'var(--color-error)' : (isBest ? 'var(--color-success)' : 'inherit');
+                        return (
+                          <div key={s.id_conductor} style={{ padding: '0.5rem', borderLeft: `3px solid ${borderColor}`, marginBottom: '0.25rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0 var(--radius-sm) var(--radius-sm) 0' }}>
+                            <strong style={{ color: textColor }}>{idx + 1}. {s.username} {s.conflicto && '(Conflicto de horario)'}</strong>
+                            {s.duracion_aproximacion_segs === null ? (
+                              <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)' }}>(Sin servicio previo)</span>
+                            ) : (
+                              <div style={{ marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                                Libre a las {new Date(s.libre_a_las).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. 
+                                Aprox: {s.tiempo_texto} ({s.distancia_texto}) desde {s.direccion_origen_viaje_aproximacion}
+                              </div>
+                            )}
+                            {s.conflicto && (
+                              <div style={{ marginTop: '0.25rem', color: 'var(--color-error)', fontSize: '0.8rem' }}>
+                                ⚠️ {s.detalles_conflicto}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <select 
+                    className="form-input form-select" 
+                    required 
+                    value={formData.id_conductor}
+                    onChange={(e) => setFormData({...formData, id_conductor: e.target.value})}
+                  >
+                    <option value="">Seleccionar conductor...</option>
+                    {suggestedDrivers ? (
+                      suggestedDrivers.map(c => (
+                        <option key={c.id_conductor} value={c.id_conductor}>{c.username}</option>
+                      ))
+                    ) : (
+                      conductores.map(c => (
+                        <option key={c.id} value={c.id}>{c.username}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Fecha y Hora de Recogida</label>
+                  <input 
+                    type="datetime-local" 
+                    className="form-input" 
+                    required 
+                    value={formData.fecha_hora_recogida}
+                    onChange={(e) => setFormData({...formData, fecha_hora_recogida: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Nombre del Pasajero</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    required 
+                    value={formData.nombre_pasajero}
+                    onChange={(e) => setFormData({...formData, nombre_pasajero: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Dirección de Recogida</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    required 
+                    value={formData.direccion_recogida}
+                    onChange={(e) => setFormData({...formData, direccion_recogida: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Dirección de Destino</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    required 
+                    value={formData.direccion_destino}
+                    onChange={(e) => setFormData({...formData, direccion_destino: e.target.value})}
+                  />
+                </div>
+
+                {editingId && partes.find(p => p.id === editingId)?.estado === 'CANCELADO' && (
+                  <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', color: 'var(--color-warning)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+                    <strong>Nota:</strong> Estás editando un parte que fue cancelado. Al guardar los cambios, el parte se reabrirá y volverá al estado <strong>PENDIENTE</strong>, asignándose al conductor seleccionado.
+                  </div>
+                )}
+
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+                  {loading ? 'Guardando...' : (editingId ? 'Guardar Cambios y Reasignar' : 'Crear Parte de Trabajo')}
+                </button>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {selectedReport && (
+        <Portal>
+          <ReportDetailModal 
+            report={selectedReport} 
+            onClose={() => setSelectedReport(null)} 
+            onRefresh={() => { setSelectedReport(null); fetchPartes(); }}
+            token={token}
+          />
+        </Portal>
+      )}
+
+      {showHistoryModal && (
+        <Portal>
+          <div className="modal-overlay" style={{ zIndex: 9999 }}>
+            <div className="modal-content glass-card animate-scale-in" style={{ maxWidth: '600px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Historial del Parte</h3>
+                <button onClick={() => setShowHistoryModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  <X size={24} />
+                </button>
+              </div>
+
+              {historyLoading ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Cargando historial...</div>
+              ) : historyData.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No hay eventos registrados para este parte.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                  {historyData.map((h) => (
+                    <div key={h.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--color-primary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <strong style={{ color: 'var(--color-primary)' }}>{h.accion.replace(/_/g, ' ')}</strong>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          {new Date(h.creado_en).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                        <strong>Usuario:</strong> {h.username || 'Sistema'} {h.rol ? `(${h.rol})` : ''}
+                      </div>
+                      {h.detalles && (
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
+                          {h.detalles}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 }
