@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Hermes Control",
-  description: "Sistema unificado para Hermes Control",
+  title: "Hermes Fleet Control",
+  description: "Sistema unificado para Hermes Fleet Control",
 };
 
 export default function RootLayout({ children }) {

@@ -26,6 +26,17 @@ export async function POST(req) {
 
     if (conductores.length === 0) return NextResponse.json([]);
 
+    // 1.b Obtener dirección base
+    let direccionBase = 'Málaga centro';
+    try {
+      const confRes = await pool.query(`SELECT valor FROM configuracion WHERE clave = 'direccion_base'`);
+      if (confRes.rows.length > 0) {
+        direccionBase = confRes.rows[0].valor;
+      }
+    } catch (err) {
+      console.warn("La tabla de configuracion aún no existe, usando valor por defecto.");
+    }
+
     const sugerencias = [];
     const origenesAproximacionPrevia = [];
     const destinosAproximacionSiguiente = [];
@@ -50,12 +61,40 @@ export async function POST(req) {
         LIMIT 1
       `, [c.id, fechaRecogida.toISOString()]);
 
+      // Número de partes que tiene el conductor ese mismo día
+      const inicioDiaStr = new Date(fechaRecogida.getFullYear(), fechaRecogida.getMonth(), fechaRecogida.getDate()).toISOString();
+      const finDia = new Date(fechaRecogida.getFullYear(), fechaRecogida.getMonth(), fechaRecogida.getDate() + 1);
+      const finDiaStr = finDia.toISOString();
+
+      const partesHoyRes = await pool.query(`
+        SELECT COUNT(*) as cuenta
+        FROM partes_trabajo
+        WHERE id_conductor = $1 AND estado != 'CANCELADO' 
+          AND fecha_hora_recogida >= $2 AND fecha_hora_recogida < $3
+      `, [c.id, inicioDiaStr, finDiaStr]);
+      
+      const numeroPartes = parseInt(partesHoyRes.rows[0].cuenta, 10);
+
       let direccionUltimoDestino = null;
       let libreALas = null;
 
       if (resultAnterior.rows.length > 0) {
         direccionUltimoDestino = resultAnterior.rows[0].direccion_destino;
         libreALas = resultAnterior.rows[0].fecha_hora_fin_estimada;
+
+        const fechaLibre = new Date(libreALas);
+        const inicioDiaRecogida = new Date(fechaRecogida);
+        inicioDiaRecogida.setHours(0, 0, 0, 0);
+
+        // Si el último parte fue en un día anterior, sale desde la Base
+        if (fechaLibre < inicioDiaRecogida) {
+          direccionUltimoDestino = direccionBase;
+        }
+        
+        origenesAproximacionPrevia.push(direccionUltimoDestino);
+      } else {
+        // Si no tiene ningún parte previo histórico, sale desde la Base
+        direccionUltimoDestino = direccionBase;
         origenesAproximacionPrevia.push(direccionUltimoDestino);
       }
 
@@ -75,6 +114,7 @@ export async function POST(req) {
       sugerencias.push({
         id_conductor: c.id,
         username: c.username,
+        numero_partes: numeroPartes,
         direccion_origen_viaje_aproximacion: direccionUltimoDestino,
         libre_a_las: libreALas,
         distancia_aproximacion: null,
@@ -143,17 +183,25 @@ export async function POST(req) {
       }
     }
 
-    // 6. Ordenar sugerencias (Conflictos al final, luego por menor tiempo de llegada)
+    // 6. Calcular Score (Algoritmo de Clustering y Equidad)
+    for (const s of sugerencias) {
+      let duracionMinutos = 0;
+      if (s.duracion_aproximacion_segs !== null) {
+        duracionMinutos = Math.round(s.duracion_aproximacion_segs / 60);
+      } else {
+        duracionMinutos = 999; // Penalización alta si no se pudo calcular ruta
+      }
+      s.score_equidad = duracionMinutos + (s.numero_partes * 20);
+    }
+
+    // 7. Ordenar sugerencias (Conflictos al final, luego por Score)
     sugerencias.sort((a, b) => {
+      // 1. Conflictos siempre al final
       if (a.conflicto && !b.conflicto) return 1;
       if (!a.conflicto && b.conflicto) return -1;
       
-      if (a.duracion_aproximacion_segs !== null && b.duracion_aproximacion_segs !== null) {
-        return a.duracion_aproximacion_segs - b.duracion_aproximacion_segs;
-      }
-      if (a.duracion_aproximacion_segs === null) return -1;
-      if (b.duracion_aproximacion_segs === null) return 1;
-      return 0;
+      // 2. Priorizar el Score más bajo
+      return a.score_equidad - b.score_equidad;
     });
 
     return NextResponse.json(sugerencias);

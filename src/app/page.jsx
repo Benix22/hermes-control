@@ -65,13 +65,104 @@ import {
   Fuel,
   Droplet,
   Key,
-  Map
+  Map,
+  Settings
 } from 'lucide-react';
 
 const API_URL = '/api';
 
 const getGoogleMapsLink = (origen, destino) => {
   return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origen)}&destination=${encodeURIComponent(destino)}&travelmode=driving`;
+};
+
+const AddressAutocomplete = ({ value, onChange, placeholder, token }) => {
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!value || !showDropdown) {
+      setSuggestions([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/admin/places-autocomplete?input=${encodeURIComponent(value)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSuggestions(data);
+        }
+      } catch (err) {
+        console.error('Error fetching autocomplete:', err);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [value, token, showDropdown]);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        type="text"
+        className="form-input"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setShowDropdown(true);
+        }}
+        onFocus={() => {
+          if (value) setShowDropdown(true);
+        }}
+        onBlur={() => {
+          setTimeout(() => setShowDropdown(false), 200);
+        }}
+        required
+      />
+      {showDropdown && suggestions.length > 0 && (
+        <ul style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-sm)',
+          listStyle: 'none',
+          padding: 0,
+          margin: '0.25rem 0 0 0',
+          zIndex: 1000,
+          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+          maxHeight: '200px',
+          overflowY: 'auto'
+        }}>
+          {suggestions.map((sug, idx) => (
+            <li 
+              key={idx}
+              style={{
+                padding: '0.75rem 1rem',
+                cursor: 'pointer',
+                borderBottom: idx < suggestions.length - 1 ? '1px solid var(--border-color)' : 'none',
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem'
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(sug);
+                setShowDropdown(false);
+              }}
+              onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            >
+              {sug}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 };
 
 export default function App() {
@@ -188,7 +279,7 @@ export default function App() {
         <div className="header-container">
           <div className="app-logo">
             <Car size={24} style={{ color: 'var(--color-primary-hover)' }} />
-            <span>Hermes Control</span>
+            <span>Hermes Fleet Control</span>
           </div>
           
           <div className="user-info-section">
@@ -317,7 +408,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg('No se pudo conectar con la API de Hermes Control.');
+      setErrorMsg('No se pudo conectar con la API de Hermes Fleet Control.');
     } finally {
       setLoading(false);
     }
@@ -337,7 +428,7 @@ function LoginScreen({ setToken, errorMsg, setErrorMsg }) {
           }}>
             <Car size={36} />
           </div>
-          <h2>Hermes Control</h2>
+          <h2>Hermes Fleet Control</h2>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', fontSize: '0.9rem' }}>
             Control de kilometraje y jornadas de flota
           </p>
@@ -890,7 +981,7 @@ function ConductorDashboard({ token }) {
                     background: selectedParteId === p.id ? 'rgba(var(--color-primary-rgb), 0.1)' : 'transparent'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span className="badge badge-warning">{p.estado}</span>
+                      <span className={`badge ${p.estado === 'CADUCADO' ? 'badge-danger' : 'badge-warning'}`}>{p.estado}</span>
                       <strong>{new Date(p.fecha_hora_recogida).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>
@@ -909,23 +1000,25 @@ function ConductorDashboard({ token }) {
                       </a>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button 
-                        onClick={() => handleAceptarParte(p.id)}
-                        className={`btn ${selectedParteId === p.id ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ flex: 1 }}
-                      >
-                        {selectedParteId === p.id ? 'Seleccionado ▼' : 'Aceptar Parte'}
-                      </button>
-                      <button 
-                        onClick={() => handleCancelarParte(p.id)}
-                        className="btn btn-secondary"
-                        style={{ padding: '0.5rem', color: 'var(--color-danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
-                        title="Cancelar Parte"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
+                    {p.estado === 'PENDIENTE' && (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => handleAceptarParte(p.id)}
+                          className={`btn ${selectedParteId === p.id ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ flex: 1 }}
+                        >
+                          {selectedParteId === p.id ? 'Seleccionado ▼' : 'Aceptar Parte'}
+                        </button>
+                        <button 
+                          onClick={() => handleCancelarParte(p.id)}
+                          className="btn btn-secondary"
+                          style={{ padding: '0.5rem', color: 'var(--color-danger)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                          title="Cancelar Parte"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1392,6 +1485,14 @@ function AdminDashboard({ token }) {
             <FileText size={18} />
             <span>Partes</span>
           </button>
+          
+          <button 
+            className={`btn ${activeTab === 'ajustes' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('ajustes')}
+          >
+            <Settings size={18} />
+            <span>Ajustes</span>
+          </button>
         </div>
       </div>
 
@@ -1403,6 +1504,7 @@ function AdminDashboard({ token }) {
         {activeTab === 'repostajes' && <AdminRepostajes token={token} />}
         {activeTab === 'limpiezas' && <AdminLimpiezas token={token} />}
         {activeTab === 'partes' && <AdminPartes token={token} />}
+        {activeTab === 'ajustes' && <AdminAjustes token={token} />}
       </div>
     </div>
   );
@@ -3310,7 +3412,13 @@ function AdminPartes({ token }) {
   const [editingId, setEditingId] = useState(null);
   const [suggestedDrivers, setSuggestedDrivers] = useState(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
   
+  const [subTab, setSubTab] = useState('listado');
+  const [resumenData, setResumenData] = useState([]);
+  const [resumenLoading, setResumenLoading] = useState(false);
+  const [filtroFechaInicio, setFiltroFechaInicio] = useState('');
+  const [filtroFechaFin, setFiltroFechaFin] = useState('');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyData, setHistoryData] = useState([]);
   const [historyParteId, setHistoryParteId] = useState(null);
@@ -3359,6 +3467,35 @@ function AdminPartes({ token }) {
     fetchPartes();
     fetchConductores();
   }, []);
+
+  const fetchResumen = async () => {
+    setResumenLoading(true);
+    try {
+      let query = '';
+      if (filtroFechaInicio) query += `fechaInicio=${filtroFechaInicio}&`;
+      if (filtroFechaFin) query += `fechaFin=${filtroFechaFin}&`;
+      
+      const res = await fetch(`${API_URL}/admin/partes/resumen-conductores?${query}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResumenData(data);
+      } else {
+        alert(data.error || 'Error al obtener el resumen');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setResumenLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (subTab === 'resumen') {
+      fetchResumen();
+    }
+  }, [subTab, filtroFechaInicio, filtroFechaFin]);
 
   const handleRowClick = async (parte) => {
     if (parte.estado === 'PENDIENTE' || parte.estado === 'CANCELADO') return;
@@ -3533,6 +3670,7 @@ function AdminPartes({ token }) {
       const data = await res.json();
       if (res.ok) {
         setSuggestedDrivers(data);
+        setShowSuggestionsModal(true);
       } else {
         throw new Error(data.error);
       }
@@ -3568,7 +3706,23 @@ function AdminPartes({ token }) {
 
       {errorMsg && <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>{errorMsg}</div>}
 
-      <div className="table-container">
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+        <button 
+          className={`btn ${subTab === 'listado' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSubTab('listado')}
+        >
+          Listado de Partes
+        </button>
+        <button 
+          className={`btn ${subTab === 'resumen' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setSubTab('resumen')}
+        >
+          Resumen por Conductor
+        </button>
+      </div>
+
+      {subTab === 'listado' ? (
+        <div className="table-container">
         {loading && partes.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando...</div>
         ) : (
@@ -3617,7 +3771,7 @@ function AdminPartes({ token }) {
                     <td>
                       <span className={`badge ${
                         p.estado === 'COMPLETADO' ? 'badge-success' : 
-                        p.estado === 'CANCELADO' ? 'badge-danger' : 
+                        (p.estado === 'CANCELADO' || p.estado === 'CADUCADO') ? 'badge-danger' : 
                         p.estado === 'EN_CURSO' ? 'badge-warning' : 'badge-info'
                       }`}>
                         {p.estado}
@@ -3645,7 +3799,7 @@ function AdminPartes({ token }) {
                       >
                         <Edit2 size={16} />
                       </button>
-                      {p.estado !== 'CANCELADO' && p.estado !== 'COMPLETADO' && (
+                      {p.estado !== 'CANCELADO' && p.estado !== 'COMPLETADO' && p.estado !== 'CADUCADO' && (
                         <button 
                           className="btn btn-secondary" 
                           style={{ padding: '0.4rem', marginRight: '0.5rem', color: 'var(--color-warning)' }} 
@@ -3671,6 +3825,58 @@ function AdminPartes({ token }) {
           </table>
         )}
       </div>
+      ) : (
+        <div className="resumen-container">
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Desde:</label>
+              <input type="date" className="form-input" value={filtroFechaInicio} onChange={e => setFiltroFechaInicio(e.target.value)} style={{ width: 'auto' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Hasta:</label>
+              <input type="date" className="form-input" value={filtroFechaFin} onChange={e => setFiltroFechaFin(e.target.value)} style={{ width: 'auto' }} />
+            </div>
+          </div>
+          
+          <div className="table-container">
+            {resumenLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>Cargando resumen...</div>
+            ) : resumenData.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No hay datos para las fechas seleccionadas.</div>
+            ) : (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Conductor</th>
+                    <th style={{ textAlign: 'center' }}>Partes Completados</th>
+                    <th style={{ textAlign: 'center' }}>KM Recorridos</th>
+                    <th style={{ textAlign: 'right' }}>Combustible (€)</th>
+                    <th style={{ textAlign: 'right' }}>Limpiezas (€)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resumenData.map(r => (
+                    <tr key={r.id}>
+                      <td><strong>{r.username}</strong></td>
+                      <td style={{ textAlign: 'center' }}>{r.partes_completados}</td>
+                      <td style={{ textAlign: 'center' }}>{r.total_km} km</td>
+                      <td style={{ textAlign: 'right', color: 'var(--color-danger)' }}>{r.total_combustible > 0 ? `-${r.total_combustible.toFixed(2)} €` : '0.00 €'}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--color-danger)' }}>{r.total_limpiezas > 0 ? `-${r.total_limpiezas.toFixed(2)} €` : '0.00 €'}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: 'rgba(255,255,255,0.02)', fontWeight: 'bold' }}>
+                    <td>TOTAL</td>
+                    <td style={{ textAlign: 'center' }}>{resumenData.reduce((acc, curr) => acc + curr.partes_completados, 0)}</td>
+                    <td style={{ textAlign: 'center' }}>{resumenData.reduce((acc, curr) => acc + curr.total_km, 0)} km</td>
+                    <td style={{ textAlign: 'right', color: 'var(--color-danger)' }}>-{resumenData.reduce((acc, curr) => acc + curr.total_combustible, 0).toFixed(2)} €</td>
+                    <td style={{ textAlign: 'right', color: 'var(--color-danger)' }}>-{resumenData.reduce((acc, curr) => acc + curr.total_limpiezas, 0).toFixed(2)} €</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <Portal>
@@ -3692,35 +3898,6 @@ function AdminPartes({ token }) {
                     </button>
                   </label>
                   
-                  {suggestedDrivers && (
-                    <div style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>
-                      <div style={{ marginBottom: '0.5rem', color: 'var(--color-primary)', fontWeight: 'bold' }}>Sugerencias por proximidad:</div>
-                      {suggestedDrivers.map((s, idx) => {
-                        const isBest = idx === 0 && !s.conflicto;
-                        const borderColor = s.conflicto ? 'var(--color-error)' : (isBest ? 'var(--color-success)' : 'var(--border-color)');
-                        const textColor = s.conflicto ? 'var(--color-error)' : (isBest ? 'var(--color-success)' : 'inherit');
-                        return (
-                          <div key={s.id_conductor} style={{ padding: '0.5rem', borderLeft: `3px solid ${borderColor}`, marginBottom: '0.25rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0 var(--radius-sm) var(--radius-sm) 0' }}>
-                            <strong style={{ color: textColor }}>{idx + 1}. {s.username} {s.conflicto && '(Conflicto de horario)'}</strong>
-                            {s.duracion_aproximacion_segs === null ? (
-                              <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)' }}>(Sin servicio previo)</span>
-                            ) : (
-                              <div style={{ marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
-                                Libre a las {new Date(s.libre_a_las).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. 
-                                Aprox: {s.tiempo_texto} ({s.distancia_texto}) desde {s.direccion_origen_viaje_aproximacion}
-                              </div>
-                            )}
-                            {s.conflicto && (
-                              <div style={{ marginTop: '0.25rem', color: 'var(--color-error)', fontSize: '0.8rem' }}>
-                                ⚠️ {s.detalles_conflicto}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
                   <select 
                     className="form-input form-select" 
                     required 
@@ -3764,23 +3941,21 @@ function AdminPartes({ token }) {
 
                 <div className="form-group">
                   <label className="form-label">Dirección de Recogida</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    required 
+                  <AddressAutocomplete 
                     value={formData.direccion_recogida}
-                    onChange={(e) => setFormData({...formData, direccion_recogida: e.target.value})}
+                    onChange={(val) => setFormData({...formData, direccion_recogida: val})}
+                    placeholder="Escribe la dirección de origen"
+                    token={token}
                   />
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Dirección de Destino</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    required 
+                  <AddressAutocomplete 
                     value={formData.direccion_destino}
-                    onChange={(e) => setFormData({...formData, direccion_destino: e.target.value})}
+                    onChange={(val) => setFormData({...formData, direccion_destino: val})}
+                    placeholder="Escribe la dirección de destino"
+                    token={token}
                   />
                 </div>
 
@@ -3794,6 +3969,77 @@ function AdminPartes({ token }) {
                   {loading ? 'Guardando...' : (editingId ? 'Guardar Cambios y Reasignar' : 'Crear Parte de Trabajo')}
                 </button>
               </form>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {showSuggestionsModal && suggestedDrivers && (
+        <Portal>
+          <div className="modal-overlay" style={{ zIndex: 10000 }}>
+            <div className="modal-content glass-card animate-scale-in" style={{ maxWidth: '600px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--color-primary)' }}>💡 Sugerencias por proximidad</h3>
+                <button onClick={() => setShowSuggestionsModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                  <X size={24} />
+                </button>
+              </div>
+              <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                {suggestedDrivers.map((s, idx) => {
+                  const isBest = idx === 0 && !s.conflicto;
+                  const borderColor = s.conflicto ? 'var(--color-error)' : (isBest ? 'var(--color-success)' : 'var(--border-color)');
+                  const textColor = s.conflicto ? 'var(--color-error)' : (isBest ? 'var(--color-success)' : 'inherit');
+                  
+                  // Verificar si está libre desde el día anterior
+                  let libreMismoDia = false;
+                  if (s.libre_a_las && formData.fecha_hora_recogida) {
+                    const d1 = new Date(s.libre_a_las);
+                    const d2 = new Date(formData.fecha_hora_recogida);
+                    libreMismoDia = d1.getFullYear() === d2.getFullYear() && 
+                                    d1.getMonth() === d2.getMonth() && 
+                                    d1.getDate() === d2.getDate();
+                  }
+
+                  return (
+                    <div key={s.id_conductor} style={{ padding: '0.75rem', borderLeft: `4px solid ${borderColor}`, marginBottom: '0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0 var(--radius-md) var(--radius-md) 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ color: textColor, fontSize: '1.1rem' }}>
+                          {idx + 1}. {s.username} {s.conflicto && '(Conflicto)'}
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginLeft: '0.5rem', fontWeight: 'normal' }}>
+                            ({s.numero_partes || 0} partes este día | Puntaje: {s.score_equidad})
+                          </span>
+                        </strong>
+                        {s.duracion_aproximacion_segs === null ? (
+                          <div style={{ marginTop: '0.25rem', color: 'var(--text-secondary)' }}>(Sin servicio previo)</div>
+                        ) : (
+                          <div style={{ marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                            {libreMismoDia 
+                              ? `Libre a las ${new Date(s.libre_a_las).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.` 
+                              : <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>Hoy está libre.</span>
+                            } 
+                            {' '}Aprox: {s.tiempo_texto} ({s.distancia_texto}) desde {s.direccion_origen_viaje_aproximacion}
+                          </div>
+                        )}
+                        {s.conflicto && (
+                          <div style={{ marginTop: '0.25rem', color: 'var(--color-error)', fontSize: '0.85rem' }}>
+                            ⚠️ {s.detalles_conflicto}
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        className={`btn ${isBest ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ padding: '0.5rem 1rem', marginLeft: '1rem' }}
+                        onClick={() => {
+                          setFormData({...formData, id_conductor: s.id_conductor});
+                          setShowSuggestionsModal(false);
+                        }}
+                      >
+                        Seleccionar
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </Portal>
@@ -3850,6 +4096,91 @@ function AdminPartes({ token }) {
             </div>
           </div>
         </Portal>
+      )}
+    </div>
+  );
+}
+
+/* ==========================================
+   ADMIN - AJUSTES
+   ========================================== */
+function AdminAjustes({ token }) {
+  const [direccionBase, setDireccionBase] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
+
+  const fetchConfig = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL + '/admin/configuracion', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDireccionBase(data.direccion_base || '');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch(API_URL + '/admin/configuracion', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ direccion_base: direccionBase })
+      });
+      if (res.ok) {
+        alert('Configuración guardada correctamente.');
+      } else {
+        const data = await res.json();
+        alert('Error: ' + data.error);
+      }
+    } catch (err) {
+      alert('Error de conexión');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="glass-card animate-fade-in" style={{ padding: '2rem' }}>
+      <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>Ajustes de la Empresa</h3>
+      
+      {loading ? (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>Cargando ajustes...</div>
+      ) : (
+        <form onSubmit={handleSave} style={{ maxWidth: '600px' }}>
+          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label" style={{ fontWeight: 'bold' }}>Dirección del Centro Base</label>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+              Esta dirección se usará como punto de partida para los conductores que no tengan partes previos o cuyo último parte haya sido en días anteriores.
+            </p>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="Ej: Calle Larios, Málaga"
+              value={direccionBase}
+              onChange={(e) => setDireccionBase(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? 'Guardando...' : 'Guardar Ajustes'}
+          </button>
+        </form>
       )}
     </div>
   );
