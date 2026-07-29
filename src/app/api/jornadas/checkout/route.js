@@ -30,6 +30,11 @@ export async function POST(req) {
         [kmFinNum, url_foto_fin_km, shift.id]
       );
       await client.query('UPDATE vehiculos SET en_uso = FALSE, km_actuales = $2 WHERE matricula = $1', [shift.matricula, kmFinNum]);
+      
+      if (shift.id_parte) {
+        await client.query("UPDATE partes_trabajo SET estado = 'COMPLETADO' WHERE id = $1", [shift.id_parte]);
+      }
+
       await client.query('COMMIT');
       return NextResponse.json({ success: true, jornada: updateShift.rows[0] });
     } catch (e) {

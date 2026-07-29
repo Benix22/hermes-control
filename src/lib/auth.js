@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'javify_super_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'hermes_super_secret_key_2026';
 
 export function verifyAuth(req) {
   const authHeader = req.headers.get('authorization');

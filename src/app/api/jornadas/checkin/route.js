@@ -7,7 +7,7 @@ export async function POST(req) {
     const auth = verifyAuth(req);
     if (auth.error) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-    const { matricula, km_inicio, url_foto_km } = await req.json();
+    const { matricula, km_inicio, url_foto_km, id_parte } = await req.json();
     if (!matricula || km_inicio === undefined) return NextResponse.json({ error: 'Matrícula y Kilómetros Iniciales son obligatorios.' }, { status: 400 });
     if (!url_foto_km) return NextResponse.json({ error: 'La fotografía del cuentakilómetros es obligatoria para iniciar la jornada.' }, { status: 400 });
 
@@ -39,11 +39,17 @@ export async function POST(req) {
       }
 
       await client.query('UPDATE vehiculos SET en_uso = TRUE, km_actuales = $2, km_perdidos = km_perdidos + $3 WHERE matricula = $1', [matricula, kmInicioNum, kmPerdidosExtra]);
+      
       const insertShift = await client.query(
-        `INSERT INTO jornadas (id_conductor, matricula, km_inicio, url_foto_km, estado, hora_inicio) 
-         VALUES ($1, $2, $3, $4, 'ACTIVA', NOW()) RETURNING *`,
-        [auth.user.id, matricula, kmInicioNum, url_foto_km || null]
+        `INSERT INTO jornadas (id_conductor, matricula, km_inicio, url_foto_km, estado, hora_inicio, id_parte) 
+         VALUES ($1, $2, $3, $4, 'ACTIVA', NOW(), $5) RETURNING *`,
+        [auth.user.id, matricula, kmInicioNum, url_foto_km || null, id_parte || null]
       );
+
+      if (id_parte) {
+        await client.query("UPDATE partes_trabajo SET estado = 'EN_CURSO' WHERE id = $1 AND id_conductor = $2", [id_parte, auth.user.id]);
+      }
+
       await client.query('COMMIT');
       return NextResponse.json(insertShift.rows[0], { status: 201 });
     } catch (e) {
