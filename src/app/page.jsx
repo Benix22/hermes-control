@@ -66,7 +66,10 @@ import {
   Droplet,
   Key,
   Map,
-  Settings
+  Settings,
+  Mic,
+  MicOff,
+  Loader2
 } from 'lucide-react';
 
 const API_URL = '/api';
@@ -176,6 +179,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
+
+
   // Modal cambio contraseña
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -525,6 +530,81 @@ function ConductorDashboard({ token }) {
   const [showLimpiezaModal, setShowLimpiezaModal] = useState(false);
   const [limpiezaAmount, setLimpiezaAmount] = useState('');
   const [limpiezaLoading, setLimpiezaLoading] = useState(false);
+  
+  // Voice AI States
+  const [isRecording, setIsRecording] = useState(false);
+  const [aiProcessing, setAiProcessing] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const audioChunksRef = useRef([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        
+        setAiProcessing(true);
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'audio.webm');
+        
+        try {
+          const res = await fetch(`${API_URL}/conductor/ai-voice`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            if (data.action === 'repostaje') {
+              setRefuelAmount(data.data.cantidad_euros?.toString() || '');
+              setRefuelKm(data.data.km_repostaje?.toString() || '');
+              setShowRefuelModal(true);
+              setSuccessMsg('¡Datos de repostaje capturados! Revisa y guarda.');
+            } else if (data.action === 'limpieza') {
+              setLimpiezaAmount(data.data.cantidad_euros?.toString() || '');
+              setShowLimpiezaModal(true);
+              setSuccessMsg('¡Datos de limpieza capturados! Revisa y guarda.');
+            } else if (data.action === 'check_out') {
+              setKmFin(data.data.km_fin?.toString() || '');
+              setSuccessMsg('¡Kilómetros finales capturados! Puedes terminar tu jornada.');
+              setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+            } else {
+              setErrorMsg('No entendí bien la acción. Por favor, repítelo o rellénalo a mano.');
+            }
+          } else {
+            const err = await res.json();
+            setErrorMsg(err.error || 'Error procesando la voz');
+          }
+        } catch (err) {
+          setErrorMsg('Error de red al conectar con IA');
+        } finally {
+          setAiProcessing(false);
+        }
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (err) {
+      setErrorMsg('No se pudo acceder al micrófono. Da permisos en tu navegador.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
   
   // Datos de Check-out
   const [kmFin, setKmFin] = useState('');
@@ -1047,7 +1127,7 @@ function ConductorDashboard({ token }) {
                 required
               >
                 <option value="">Selecciona una matrícula...</option>
-                {vehiculos.slice((currentPage - 1) * 50, currentPage * 50).map(v => (
+                {vehiculos.map(v => (
                   <option key={v.matricula} value={v.matricula}>
                     {v.matricula} - {v.marca_modelo}
                   </option>
@@ -1149,10 +1229,30 @@ function ConductorDashboard({ token }) {
             pausas={jornadaActiva.pausas || []} 
           />
 
-          {/* Controles de Pausa/Reanudación */}
+          {/* Controles de Pausa/Reanudación y Voz */}
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
             {jornadaActiva.estado === 'ACTIVA' ? (
               <>
+                <div style={{ width: '100%', display: 'flex', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <button 
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
+                    className={`btn ${isRecording ? 'btn-danger' : 'btn-secondary'}`} 
+                    style={{ flex: 1, height: '3.5rem', background: isRecording ? 'var(--color-danger)' : 'var(--bg-card)', border: '2px solid', borderColor: isRecording ? 'var(--color-danger)' : 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem', fontWeight: 'bold', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+                    disabled={aiProcessing}
+                  >
+                    {aiProcessing ? (
+                      <><RefreshCw size={24} className="animate-spin" /> Procesando IA...</>
+                    ) : isRecording ? (
+                      <><MicOff size={24} className="animate-pulse" /> Escuchando... (Suelta para enviar)</>
+                    ) : (
+                      <><Mic size={24} style={{ color: 'var(--color-primary)' }} /> Mantén pulsado para Dictar</>
+                    )}
+                  </button>
+                </div>
+                
                 <button onClick={handlePause} className="btn btn-secondary" style={{ flex: 1, height: '2.6rem', minWidth: '140px' }}>
                   <Pause size={18} />
                   <span>Pausar Descanso</span>
@@ -1493,6 +1593,13 @@ function AdminDashboard({ token }) {
             <Settings size={18} />
             <span>Ajustes</span>
           </button>
+          <button 
+            className={`btn ${activeTab === 'anomalias' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('anomalias')}
+          >
+            <TrendingUp size={18} style={{ color: 'var(--color-warning)' }} />
+            <span>Analíticas IA</span>
+          </button>
         </div>
       </div>
 
@@ -1504,6 +1611,7 @@ function AdminDashboard({ token }) {
         {activeTab === 'repostajes' && <AdminRepostajes token={token} />}
         {activeTab === 'limpiezas' && <AdminLimpiezas token={token} />}
         {activeTab === 'partes' && <AdminPartes token={token} />}
+        {activeTab === 'anomalias' && <AdminAnomalias token={token} />}
         {activeTab === 'ajustes' && <AdminAjustes token={token} />}
       </div>
     </div>
@@ -1638,7 +1746,7 @@ function AdminDrivers({ token }) {
             </tr>
           </thead>
           <tbody>
-            {conductores.slice((currentPage - 1) * 50, currentPage * 50).map(c => (
+            {conductores.slice((currentPage - 1) * 25, currentPage * 25).map(c => (
               <tr key={c.id}>
                 <td>{c.id}</td>
                 <td><strong>{c.username}</strong></td>
@@ -1660,7 +1768,13 @@ function AdminDrivers({ token }) {
           </tbody>
         </table>
       </div>
-
+      
+      <Pagination 
+        currentPage={currentPage} 
+        totalItems={conductores.length} 
+        pageSize={25} 
+        onPageChange={setCurrentPage} 
+      />
       </div>
 
       {/* MODAL FORMULARIO */}
@@ -2333,7 +2447,7 @@ function AdminReports({ token }) {
                   </td>
                 </tr>
               ) : (
-                reportsData.detalles.slice((currentPage - 1) * 50, currentPage * 50).map(r => {
+                reportsData.detalles.slice((currentPage - 1) * 25, currentPage * 25).map(r => {
                   const dateStr = new Date(r.hora_inicio).toLocaleDateString();
                   const timeStart = new Date(r.hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   const timeEnd = r.hora_fin 
@@ -2409,6 +2523,13 @@ function AdminReports({ token }) {
             </tbody>
           </table>
         </div>
+        
+        <Pagination 
+          currentPage={currentPage} 
+          totalItems={reportsData.detalles.length} 
+          pageSize={25} 
+          onPageChange={setCurrentPage} 
+        />
       </div>
 
       {/* MODAL PARA VER FOTO */}
@@ -4104,6 +4225,100 @@ function AdminPartes({ token }) {
 /* ==========================================
    ADMIN - AJUSTES
    ========================================== */
+function AdminAnomalias({ token }) {
+  const [data, setData] = useState({ reporteIA: '', anomalias: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadAnomalias();
+  }, []);
+
+  const loadAnomalias = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/admin/analytics/anomalias`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      } else {
+        const err = await res.json();
+        setError(err.error || 'Error cargando analíticas');
+      }
+    } catch (err) {
+      setError('Error de red');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '3rem' }}><RefreshCw className="animate-spin" size={32} style={{ margin: '0 auto', color: 'var(--color-primary)' }} /><p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Analizando tiempos con IA...</p></div>;
+  if (error) return <div className="alert alert-danger">{error}</div>;
+
+  return (
+    <div className="glass-card" style={{ padding: '2rem' }}>
+      <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--color-warning)' }}>
+        <AlertCircle size={28} />
+        Detección de Anomalías (IA)
+      </h2>
+
+      <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '2rem' }}>
+        <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <TrendingUp size={20} /> Reporte Ejecutivo
+        </h3>
+        <p style={{ whiteSpace: 'pre-wrap', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+          {data.reporteIA}
+        </p>
+      </div>
+
+      <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Top Anomalías (Más de 10% desviación)</h3>
+      {data.anomalias.length === 0 ? (
+        <p style={{ color: 'var(--text-secondary)' }}>No hay anomalías registradas.</p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Conductor</th>
+                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Ruta</th>
+                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Tiempo Estimado</th>
+                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Tiempo Real</th>
+                <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Desviación</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.anomalias.map(a => (
+                <tr key={a.parte_id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <td style={{ padding: '1rem', fontWeight: '500' }}>{a.conductor_nombre}</td>
+                  <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
+                    {a.direccion_recogida.split(',')[0]} &rarr; {a.direccion_destino.split(',')[0]}<br/>
+                    <small>Pax: {a.nombre_pasajero}</small>
+                  </td>
+                  <td style={{ padding: '1rem' }}>{a.mins_estimados} min</td>
+                  <td style={{ padding: '1rem', color: 'var(--color-danger)', fontWeight: 'bold' }}>{a.mins_reales} min</td>
+                  <td style={{ padding: '1rem' }}>
+                    <span style={{ 
+                      background: a.desviacion_porcentaje > 50 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)', 
+                      color: a.desviacion_porcentaje > 50 ? 'var(--color-danger)' : 'var(--color-warning)',
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: '1rem', 
+                      fontWeight: 'bold' 
+                    }}>
+                      +{a.desviacion_porcentaje}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminAjustes({ token }) {
   const [direccionBase, setDireccionBase] = useState('');
   const [loading, setLoading] = useState(false);
